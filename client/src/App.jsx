@@ -1,16 +1,47 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import API from "./api";
 import { generateWhatsAppLink } from "./utils/ticketMessage";
 import Sidebar from "./components/Sidebar";
 import Dashboard from "./components/Dashboard";
 import CategoryForm from "./components/CategoryForm";
 import FacilityForm from "./components/FacilityForm";
-import AttendeeForm from "./components/AttendeeForm";
 import UserManagement from "./components/UserManagement";
 import CheckInScanner from "./components/CheckInScanner";
-import AttendeeReport from "./components/AttendeeReport";
 import MemberList from "./components/MemberList";
+import AttendeeForm from "./components/AttendeeForm";
+import ReportView from "./components/ReportView";
 import Login from "./components/Login";
+
+const ROLE_MENU_ACCESS = {
+  Admin: [
+    "dashboard",
+    "add-category",
+    "add-facility",
+    "users",
+    "attendees",
+    "check-in",
+    "member-report",
+    "facility-report",
+    "registration-report",
+  ],
+  DataEntry: [
+    "dashboard",
+    "attendees",
+    "member-report",
+    "registration-report",
+  ],
+  Scanner: ["dashboard", "check-in", "facility-report"],
+};
+
+const normalizeRole = (role) => {
+  const value = String(role || "").toLowerCase().replace(/\s+/g, "");
+
+  if (value === "admin") return "Admin";
+  if (value === "dataentry") return "DataEntry";
+  if (value === "scanner") return "Scanner";
+
+  return "Scanner";
+};
 
 function App() {
   // Auth State
@@ -19,6 +50,21 @@ function App() {
   const [authToken, setAuthToken] = useState(null);
 
   const [activeMenu, setActiveMenu] = useState("dashboard");
+
+  const menuItems = [
+    { id: "dashboard", label: "Dashboard" },
+    { id: "add-category", label: "Add Category" },
+    { id: "add-facility", label: "Add Facility" },
+    { id: "users", label: "Create Login" },
+    { id: "attendees", label: "Member" },
+    { id: "check-in", label: "Check-In" },
+    { id: "member-report", label: "Member Report" },
+    { id: "facility-report", label: "Facility Report" },
+    { id: "registration-report", label: "Registration Report" },
+  ];
+
+  const currentRole = normalizeRole(currentUser?.role);
+  const allowedMenus = ROLE_MENU_ACCESS[currentRole] || ROLE_MENU_ACCESS.Scanner;
 
   // Category Form State
   const [categoryForm, setCategoryForm] = useState({
@@ -85,6 +131,8 @@ function App() {
 
   const [editingAttendeeId, setEditingAttendeeId] = useState(null);
   const scanInputRef = useRef(null);
+  const scanBufferRef = useRef("");
+  const scanBufferTimeoutRef = useRef(null);
 
   // ==================== FETCH DATA ====================
 
@@ -185,6 +233,12 @@ function App() {
     }
   }, [activeMenu]);
 
+  useEffect(() => {
+    if (isAuthenticated && !allowedMenus.includes(activeMenu)) {
+      setActiveMenu(allowedMenus[0] || "dashboard");
+    }
+  }, [isAuthenticated, activeMenu, allowedMenus]);
+
   // ==================== FORM HANDLERS ====================
 
   const handleCategoryChange = (e) => {
@@ -199,6 +253,14 @@ function App() {
       ...prev,
       [e.target.name]: e.target.value,
     }));
+  };
+
+  const resetCategoryForm = () => {
+    setCategoryForm({ categoryName: "", price: "", coverPrice: "" });
+  };
+
+  const resetFacilityForm = () => {
+    setFacilityForm({ facilityName: "", description: "" });
   };
 
   const handleUserChange = (e) => {
@@ -288,7 +350,7 @@ function App() {
         price: Number(categoryForm.price),
         coverPrice: Number(categoryForm.coverPrice),
       });
-      setCategoryForm({ categoryName: "", price: "", coverPrice: "" });
+      resetCategoryForm();
       await Promise.all([fetchCategories(), fetchDashboardSummary()]);
       alert("Category added successfully");
     } catch (error) {
@@ -311,7 +373,7 @@ function App() {
         description: facilityForm.description,
         status: "Active",
       });
-      setFacilityForm({ facilityName: "", description: "" });
+      resetFacilityForm();
       await fetchFacilities();
       alert("Facility added successfully");
     } catch (error) {
@@ -374,17 +436,19 @@ function App() {
     }
   };
 
-  const handleCheckInSubmit = async (e) => {
-    e.preventDefault();
-    if (!checkInForm.scanValue.trim()) {
+  const performCheckIn = useCallback(async (rawScanValue) => {
+    const scanValue = String(rawScanValue || "").trim();
+
+    if (!scanValue) {
       alert("Please scan or enter a ticket code");
       return;
     }
+
     try {
       setCheckInLoading(true);
       setCheckInResult(null);
       const response = await API.post("/checkin", {
-        scanValue: checkInForm.scanValue.trim(),
+        scanValue,
         facility: checkInForm.facility,
         notes: "",
         checkedInBy: "operator",
@@ -411,7 +475,79 @@ function App() {
         }
       }, 100);
     }
+  }, [checkInForm.facility]);
+
+  const handleCheckInSubmit = async (e) => {
+    e.preventDefault();
+    await performCheckIn(checkInForm.scanValue);
   };
+
+  useEffect(() => {
+    if (!isAuthenticated || activeMenu !== "check-in") {
+      return;
+    }
+
+    const handleGlobalScan = (event) => {
+      if (event.ctrlKey || event.altKey || event.metaKey) {
+        return;
+      }
+
+      const activeElement = document.activeElement;
+      const isScanInputFocused =
+        activeElement?.tagName === "INPUT" &&
+        activeElement?.getAttribute("name") === "scanValue";
+
+      // Let the form handle Enter when scanner input already has focus.
+      if (isScanInputFocused) {
+        return;
+      }
+
+      if (event.key === "Enter") {
+        const capturedValue = scanBufferRef.current.trim();
+        scanBufferRef.current = "";
+
+        if (scanBufferTimeoutRef.current) {
+          clearTimeout(scanBufferTimeoutRef.current);
+          scanBufferTimeoutRef.current = null;
+        }
+
+        if (capturedValue && !checkInLoading) {
+          event.preventDefault();
+          setCheckInForm((prev) => ({ ...prev, scanValue: capturedValue }));
+          void performCheckIn(capturedValue);
+        }
+
+        return;
+      }
+
+      if (event.key.length !== 1) {
+        return;
+      }
+
+      scanBufferRef.current += event.key;
+
+      if (scanBufferTimeoutRef.current) {
+        clearTimeout(scanBufferTimeoutRef.current);
+      }
+
+      scanBufferTimeoutRef.current = setTimeout(() => {
+        scanBufferRef.current = "";
+        scanBufferTimeoutRef.current = null;
+      }, 150);
+    };
+
+    window.addEventListener("keydown", handleGlobalScan);
+
+    return () => {
+      window.removeEventListener("keydown", handleGlobalScan);
+      scanBufferRef.current = "";
+
+      if (scanBufferTimeoutRef.current) {
+        clearTimeout(scanBufferTimeoutRef.current);
+        scanBufferTimeoutRef.current = null;
+      }
+    };
+  }, [activeMenu, isAuthenticated, checkInLoading, performCheckIn]);
 
   const handlePrintReport = () => {
     window.print();
@@ -467,16 +603,40 @@ function App() {
       {!isAuthenticated ? (
         <Login onLoginSuccess={handleLoginSuccess} />
       ) : (
-        <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100">
+        <div className="min-h-screen bg-transparent">
           <div className="flex min-h-screen">
             <Sidebar 
               activeMenu={activeMenu} 
               setActiveMenu={setActiveMenu}
               currentUser={currentUser}
+              allowedMenus={allowedMenus}
               onLogout={handleLogout}
             />
             
-            <main className="flex-1 p-6 md:p-12">
+            <main className="flex-1 p-4 md:ml-56 md:p-8 lg:p-10">
+              <div className="mx-auto w-full max-w-7xl space-y-6 fade-up">
+              <div className="sticky top-0 z-20 -mx-1 rounded-xl border border-[#d2e0ef] bg-white/85 p-3 backdrop-blur md:hidden">
+                <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">Navigate</p>
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {menuItems.map((item) => (
+                    allowedMenus.includes(item.id) && (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => setActiveMenu(item.id)}
+                        className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-semibold transition ${
+                          activeMenu === item.id
+                            ? "bg-teal-600 text-white shadow"
+                            : "bg-slate-100 text-slate-700"
+                        }`}
+                      >
+                        {item.label}
+                      </button>
+                    )
+                  ))}
+                </div>
+              </div>
+
               {/* DASHBOARD VIEW */}
               {activeMenu === "dashboard" && (
                 <Dashboard 
@@ -485,36 +645,53 @@ function App() {
                 />
               )}
 
-              {/* MASTER VIEW - Categories & Facilities */}
-              {activeMenu === "master" && (
+              {/* ADD CATEGORY VIEW */}
+              {activeMenu === "add-category" && (
                 <div className="space-y-8">
-                  <div>
-                    <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">Master Data</h1>
-                    <p className="mt-2 text-slate-600 text-sm">Manage ticket categories and event facilities</p>
+                  <div className="rounded-2xl border border-[#d3e2ef] bg-white/85 px-6 py-5 shadow-sm">
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Operations</p>
+                    <h1 className="mt-2 text-3xl font-bold text-slate-900">Add Category</h1>
+                    <p className="mt-1 text-xs text-slate-500">Home / Master / Add Category</p>
+                    <p className="mt-2 text-sm text-slate-600">Create and manage ticket categories.</p>
                   </div>
-                  <div className="grid grid-cols-1 gap-8 xl:grid-cols-2">
-                    <CategoryForm
-                      categoryForm={categoryForm}
-                      categoryLoading={categoryLoading}
-                      onFormChange={handleCategoryChange}
-                      onSubmit={handleCategorySubmit}
-                    />
-                    <FacilityForm
-                      facilityForm={facilityForm}
-                      facilityLoading={facilityLoading}
-                      onFormChange={handleFacilityChange}
-                      onSubmit={handleFacilitySubmit}
-                    />
+                  <CategoryForm
+                    categoryForm={categoryForm}
+                    categories={categories}
+                    categoryLoading={categoryLoading}
+                    onFormChange={handleCategoryChange}
+                    onSubmit={handleCategorySubmit}
+                    onReset={resetCategoryForm}
+                  />
+                </div>
+              )}
+
+              {/* ADD FACILITY VIEW */}
+              {activeMenu === "add-facility" && (
+                <div className="space-y-8">
+                  <div className="rounded-2xl border border-[#d3e2ef] bg-white/85 px-6 py-5 shadow-sm">
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Operations</p>
+                    <h1 className="mt-2 text-3xl font-bold text-slate-900">Add Facility</h1>
+                    <p className="mt-1 text-xs text-slate-500">Home / Master / Add Facility</p>
+                    <p className="mt-2 text-sm text-slate-600">Create and manage event facilities.</p>
                   </div>
+                  <FacilityForm
+                    facilityForm={facilityForm}
+                    facilities={facilities}
+                    facilityLoading={facilityLoading}
+                    onFormChange={handleFacilityChange}
+                    onSubmit={handleFacilitySubmit}
+                    onReset={resetFacilityForm}
+                  />
                 </div>
               )}
 
               {/* USERS VIEW */}
               {activeMenu === "users" && (
                 <div className="space-y-8">
-                  <div>
-                    <h1 className="text-4xl font-bold bg-gradient-to-r from-orange-600 to-orange-800 bg-clip-text text-transparent">User Management</h1>
-                    <p className="mt-2 text-slate-600 text-sm">Create and manage user accounts for event operations</p>
+                  <div className="rounded-2xl border border-[#d3e2ef] bg-white/85 px-6 py-5 shadow-sm">
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Access</p>
+                    <h1 className="mt-2 text-3xl font-bold text-slate-900">User Management</h1>
+                    <p className="mt-2 text-sm text-slate-600">Create and manage user accounts for event operations.</p>
                   </div>
                   <UserManagement
                     userForm={userForm}
@@ -529,36 +706,37 @@ function App() {
               {/* ATTENDEES VIEW */}
               {activeMenu === "attendees" && (
                 <div className="space-y-8">
-                  <div>
-                    <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-purple-800 bg-clip-text text-transparent">Event Attendees</h1>
-                    <p className="mt-2 text-slate-600 text-sm">Register attendees and manage tickets with WhatsApp delivery</p>
+                  <div className="rounded-2xl border border-[#d3e2ef] bg-white/85 px-6 py-5 shadow-sm">
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Member</p>
+                    <h1 className="mt-2 text-3xl font-bold text-slate-900">Member List</h1>
+                    <p className="mt-1 text-xs text-slate-500">Home / Member / Member List</p>
+                    <p className="mt-2 text-sm text-slate-600">View and manage registered members.</p>
                   </div>
-                  <div className="grid grid-cols-1 gap-8 xl:grid-cols-2 print:hidden">
-                    <AttendeeForm
-                      attendeeForm={attendeeForm}
-                      attendeeLoading={attendeeLoading}
-                      editingAttendeeId={editingAttendeeId}
-                      categories={categories}
-                      onFormChange={handleAttendeeChange}
-                      onSubmit={handleAttendeeSubmit}
-                      onCancelEdit={resetAttendeeForm}
-                    />
-                    <MemberList
-                      members={attendees}
-                      onEdit={handleEditAttendee}
-                      onDelete={handleDeleteAttendee}
-                      onResendWhatsApp={handleResendWhatsApp}
-                    />
-                  </div>
+                  <AttendeeForm
+                    attendeeForm={attendeeForm}
+                    attendeeLoading={attendeeLoading}
+                    editingAttendeeId={editingAttendeeId}
+                    categories={categories}
+                    onFormChange={handleAttendeeChange}
+                    onSubmit={handleAttendeeSubmit}
+                    onCancelEdit={resetAttendeeForm}
+                  />
+                  <MemberList
+                    members={attendees}
+                    onEdit={handleEditAttendee}
+                    onDelete={handleDeleteAttendee}
+                    canTestQr={currentRole === "Admin"}
+                  />
                 </div>
               )}
 
               {/* CHECK-IN VIEW */}
               {activeMenu === "check-in" && (
                 <div className="space-y-8">
-                  <div>
-                    <h1 className="text-4xl font-bold bg-gradient-to-r from-green-600 to-green-800 bg-clip-text text-transparent">Event Check-In</h1>
-                    <p className="mt-2 text-slate-600 text-sm">Scan QR codes and track attendee entries in real-time</p>
+                  <div className="rounded-2xl border border-[#d3e2ef] bg-white/85 px-6 py-5 shadow-sm">
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Entry</p>
+                    <h1 className="mt-2 text-3xl font-bold text-slate-900">Event Check-In</h1>
+                    <p className="mt-2 text-sm text-slate-600">Scan QR codes and track attendee entries in real time.</p>
                   </div>
                   <CheckInScanner
                     checkInForm={checkInForm}
@@ -572,23 +750,63 @@ function App() {
                 </div>
               )}
 
-              {/* REPORTS VIEW */}
-              {activeMenu === "reports" && (
+              {/* MEMBER REPORT VIEW */}
+              {activeMenu === "member-report" && (
                 <div className="space-y-8">
-                  <div>
-                    <h1 className="text-4xl font-bold bg-gradient-to-r from-red-600 to-red-800 bg-clip-text text-transparent">Entry Report</h1>
-                    <p className="mt-2 text-slate-600 text-sm">View detailed analytics and generate reports for your event</p>
+                  <div className="rounded-2xl border border-[#d3e2ef] bg-white/85 px-6 py-5 shadow-sm">
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Insights</p>
+                    <h1 className="mt-2 text-3xl font-bold text-slate-900">Member Report</h1>
+                    <p className="mt-1 text-xs text-slate-500">Home / Report / Member Report</p>
+                    <p className="mt-2 text-sm text-slate-600">Member wise listing and summary report.</p>
                   </div>
-                  <AttendeeReport
+                  <ReportView
+                    type="member"
                     attendees={attendees}
-                    dashboardStats={dashboardStats}
+                    facilities={facilities}
+                    users={users}
                     onPrintReport={handlePrintReport}
-                    onEditAttendee={handleEditAttendee}
-                    onDeleteAttendee={handleDeleteAttendee}
-                    onSendWhatsApp={handleSendWhatsApp}
                   />
                 </div>
               )}
+
+              {/* FACILITY REPORT VIEW */}
+              {activeMenu === "facility-report" && (
+                <div className="space-y-8">
+                  <div className="rounded-2xl border border-[#d3e2ef] bg-white/85 px-6 py-5 shadow-sm">
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Insights</p>
+                    <h1 className="mt-2 text-3xl font-bold text-slate-900">Facility Report</h1>
+                    <p className="mt-1 text-xs text-slate-500">Home / Report / Facility Report</p>
+                    <p className="mt-2 text-sm text-slate-600">Facility collection and entry report.</p>
+                  </div>
+                  <ReportView
+                    type="facility"
+                    attendees={attendees}
+                    facilities={facilities}
+                    users={users}
+                    onPrintReport={handlePrintReport}
+                  />
+                </div>
+              )}
+
+              {/* REGISTRATION REPORT VIEW */}
+              {activeMenu === "registration-report" && (
+                <div className="space-y-8">
+                  <div className="rounded-2xl border border-[#d3e2ef] bg-white/85 px-6 py-5 shadow-sm">
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Insights</p>
+                    <h1 className="mt-2 text-3xl font-bold text-slate-900">Registration Report</h1>
+                    <p className="mt-1 text-xs text-slate-500">Home / Report / Registration Report</p>
+                    <p className="mt-2 text-sm text-slate-600">Registration details with ticket and cover amounts.</p>
+                  </div>
+                  <ReportView
+                    type="registration"
+                    attendees={attendees}
+                    facilities={facilities}
+                    users={users}
+                    onPrintReport={handlePrintReport}
+                  />
+                </div>
+              )}
+              </div>
           </main>
         </div>
       </div>

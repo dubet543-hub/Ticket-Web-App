@@ -1,1 +1,86 @@
 @import "tailwindcss";
+
+:root {
+  --ink-950: #0d1b2a;
+  --ink-900: #12243a;
+  --ink-800: #1d3653;
+  --mist-100: #eef3f9;
+  --mist-200: #dce7f3;
+  --mist-300: #c5d6e8;
+  --sand-50: #fbf8f1;
+  --sand-100: #f5ecda;
+  --teal-500: #1a8f84;
+  --teal-600: #137369;
+  --coral-500: #ec6f50;
+  --ok-500: #1f9d6f;
+  --warn-500: #d28a1f;
+  --danger-500: #d05151;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  color: var(--ink-900);
+  font-family: "Manrope", "Segoe UI", sans-serif;
+  background:
+    radial-gradient(circle at 12% 12%, rgba(236, 111, 80, 0.16), transparent 34%),
+    radial-gradient(circle at 87% 20%, rgba(26, 143, 132, 0.16), transparent 30%),
+    linear-gradient(145deg, #f9fbfe 0%, #eef4fb 50%, #f6fbff 100%);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin: 0;
+  color: var(--ink-950);
+  letter-spacing: -0.02em;
+  font-family: "Sora", "Manrope", sans-serif;
+}
+
+p {
+  margin: 0;
+}
+
+input,
+textarea,
+select,
+button {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--mist-300), #9fb4ce);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #aac0d8, #8fa8c4);
+}

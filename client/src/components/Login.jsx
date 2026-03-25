@@ -43,70 +43,75 @@ function Login({ onLoginSuccess }) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-600 via-blue-700 to-purple-800 flex items-center justify-center p-4">
-      {/* Animated background elements */}
-      <div className="absolute top-0 left-0 w-96 h-96 bg-white/10 rounded-full blur-3xl -z-10"></div>
-      <div className="absolute bottom-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl -z-10"></div>
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden p-4">
+      <div className="absolute -left-24 top-8 h-64 w-64 rounded-full bg-[#ec6f50]/20 blur-3xl"></div>
+      <div className="absolute -right-20 bottom-8 h-72 w-72 rounded-full bg-[#1a8f84]/20 blur-3xl"></div>
 
-      <div className="w-full max-w-md">
-        {/* Header Card */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/20 backdrop-blur-md mb-4">
-            <span className="text-4xl">🎫</span>
+      <div className="grid w-full max-w-5xl overflow-hidden rounded-3xl border border-[#d2e0ef] bg-white/90 shadow-2xl md:grid-cols-2">
+        <section className="hidden bg-linear-to-br from-[#0f6c63] via-[#1a8f84] to-[#24a79c] p-10 text-white md:block">
+          <div className="mb-8 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-white/20">
+            <span className="text-lg font-bold">TM</span>
           </div>
-          <h1 className="text-4xl font-bold text-white mb-2">Event Manager</h1>
-          <p className="text-white/80 text-sm">Ticket & Entry Management System</p>
-        </div>
+          <h1 className="mb-3 text-3xl font-bold text-white">Welcome to Event Flow</h1>
+          <p className="text-sm text-teal-50">Run registrations, check-ins, and reports from one focused operations panel.</p>
 
-        {/* Login Form Card */}
-        <div className="bg-white rounded-2xl shadow-2xl p-8 backdrop-blur-sm">
-          <h2 className="text-2xl font-bold text-slate-900 mb-2">Welcome Back</h2>
-          <p className="text-slate-600 text-sm mb-6">Sign in to your account to continue</p>
+          <div className="mt-10 space-y-4 text-sm">
+            <div className="rounded-xl border border-white/20 bg-white/10 p-4">
+              <p className="font-semibold">Fast attendee registration</p>
+            </div>
+            <div className="rounded-xl border border-white/20 bg-white/10 p-4">
+              <p className="font-semibold">Real-time QR based check-in</p>
+            </div>
+            <div className="rounded-xl border border-white/20 bg-white/10 p-4">
+              <p className="font-semibold">Actionable reporting and exports</p>
+            </div>
+          </div>
+        </section>
+
+        <section className="p-6 md:p-10">
+          <div className="mb-8">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Secure Access</p>
+            <h2 className="mt-2 text-3xl font-bold text-slate-900">Sign in</h2>
+            <p className="mt-2 text-sm text-slate-600">Enter your credentials to continue.</p>
+          </div>
 
           {error && (
-            <div className="mb-6 rounded-lg bg-red-50 border-l-4 border-red-500 p-4">
-              <p className="text-red-800 font-medium">
-                <span className="mr-2">❌</span>
-                {error}
-              </p>
+            <div className="alert alert-danger mb-6">
+              <p>{error}</p>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label className="mb-2 block text-sm font-semibold text-slate-900">
-                👤 Username
-              </label>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="form-group">
+              <label className="form-label">Username</label>
               <input
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="Enter your username"
-                className="w-full rounded-lg border-2 border-slate-300 px-4 py-3 text-slate-900 placeholder-slate-500 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10"
+                className="form-input"
                 disabled={isLoading}
               />
             </div>
 
-            <div>
-              <label className="mb-2 block text-sm font-semibold text-slate-900">
-                🔐 Password
-              </label>
+            <div className="form-group">
+              <label className="form-label">Password</label>
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
-                  className="w-full rounded-lg border-2 border-slate-300 px-4 py-3 pr-12 text-slate-900 placeholder-slate-500 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10"
+                  className="form-input"
                   disabled={isLoading}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 hover:text-slate-900 transition"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-0 text-sm font-semibold text-slate-500 transition hover:text-slate-700"
                   disabled={isLoading}
                 >
-                  {showPassword ? "🙈" : "👁️"}
+                  {showPassword ? "Hide" : "Show"}
                 </button>
               </div>
             </div>
@@ -114,45 +119,42 @@ function Login({ onLoginSuccess }) {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 py-3 font-semibold text-white transition hover:shadow-lg hover:shadow-blue-600/30 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-70 disabled:shadow-none"
+              className="btn-primary w-full justify-center mt-6"
             >
               {isLoading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
-                  Signing in...
-                </span>
+                <>
+                  <span className="spinner"></span>
+                  <span>Signing in...</span>
+                </>
               ) : (
-                "🔓 Sign In"
+                <span>Sign In</span>
               )}
             </button>
           </form>
 
-          {/* Demo Credentials Info */}
-          <div className="mt-8 rounded-lg bg-blue-50 p-4 border border-blue-200">
-            <p className="text-xs font-semibold text-blue-900 mb-3">📝 Demo Credentials:</p>
-            <div className="space-y-2 text-xs text-blue-800">
+          <div className="mt-7 rounded-xl border border-[#d6e4f2] bg-[#f2f8ff] p-4">
+            <p className="mb-3 text-xs font-bold uppercase tracking-wide text-[#0f6c63]">Demo Credentials</p>
+            <div className="space-y-2.5 text-xs">
               <div>
-                <p className="font-semibold">Admin:</p>
-                <p className="text-blue-700">Username: admin | Password: admin123</p>
+                <p className="font-semibold text-slate-900">Admin</p>
+                <p className="text-slate-700">admin / admin123</p>
               </div>
               <div>
-                <p className="font-semibold">Data Entry:</p>
-                <p className="text-blue-700">Username: dataentry | Password: entry123</p>
+                <p className="font-semibold text-slate-900">Data Entry</p>
+                <p className="text-slate-700">dataentry / entry123</p>
               </div>
               <div>
-                <p className="font-semibold">Scanner:</p>
-                <p className="text-blue-700">Username: scanner | Password: scan123</p>
+                <p className="font-semibold text-slate-900">Scanner</p>
+                <p className="text-slate-700">scanner / scan123</p>
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Footer */}
-        <div className="mt-8 text-center">
-          <p className="text-white/70 text-sm">
+          <div className="mt-6 text-center">
+            <p className="text-xs text-slate-500">
             Protected system • All access is logged and monitored
-          </p>
-        </div>
+            </p>
+          </div>
+        </section>
       </div>
     </div>
   );

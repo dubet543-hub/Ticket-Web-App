@@ -4,10 +4,54 @@ function MemberList({
   members,
   onEdit,
   onDelete,
-  onResendWhatsApp,
+  canTestQr = false,
 }) {
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterBy, setFilterBy] = useState("all");
+  const [pageSize, setPageSize] = useState(10);
+  const [selectedMember, setSelectedMember] = useState(null);
+
+  const handlePrintTicketPdf = () => {
+    if (!selectedMember?.qrCode) {
+      alert("QR code not available for this attendee");
+      return;
+    }
+
+    const win = window.open("", "_blank", "width=900,height=700");
+    if (!win) {
+      alert("Popup blocked. Please allow popups and try again.");
+      return;
+    }
+
+    win.document.write(`
+      <html>
+        <head>
+          <title>${selectedMember.name} - Ticket QR</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 24px; }
+            .card { max-width: 420px; border: 1px solid #d5dde8; border-radius: 12px; padding: 20px; }
+            .title { font-size: 22px; font-weight: 700; margin: 0 0 8px; }
+            .line { margin: 4px 0; color: #334155; }
+            .qr { margin-top: 16px; width: 250px; height: 250px; object-fit: contain; border: 1px solid #cbd5e1; border-radius: 8px; }
+          </style>
+        </head>
+        <body>
+          <div class="card">
+            <h1 class="title">Test Ticket QR</h1>
+            <p class="line"><strong>Name:</strong> ${selectedMember.name || "-"}</p>
+            <p class="line"><strong>Registration No:</strong> ${selectedMember.registrationNo || "-"}</p>
+            <p class="line"><strong>Mobile:</strong> ${selectedMember.mobile || "-"}</p>
+            <img class="qr" src="${selectedMember.qrCode}" alt="QR Code" />
+          </div>
+          <script>
+            window.onload = function () {
+              window.print();
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    win.document.close();
+  };
 
   // Filter members based on search and filter
   const filteredMembers = members.filter((member) => {
@@ -16,150 +60,98 @@ function MemberList({
       member.mobile.includes(searchTerm) ||
       member.registrationNo.includes(searchTerm);
 
-    const matchesFilter =
-      filterBy === "all" ||
-      (filterBy === "checked-in" && member.isCheckedIn) ||
-      (filterBy === "pending" && !member.isCheckedIn) ||
-      (filterBy === "whatsapp-sent" && member.whatsappSent) ||
-      (filterBy === "whatsapp-not-sent" && !member.whatsappSent);
-
-    return matchesSearch && matchesFilter;
+    return matchesSearch;
   });
 
+  const paginatedMembers = filteredMembers.slice(0, pageSize);
+
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-8 shadow-md transition hover:shadow-lg">
-      <div className="mb-6 flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100">
-          <span className="text-lg">📄</span>
-        </div>
-        <h3 className="text-2xl font-bold text-slate-900">
-          Attendee Directory
-        </h3>
-      </div>
-
-      {/* Search and Filters */}
-      <div className="mb-6 space-y-4">
-        <div className="grid gap-4 md:grid-cols-2">
-          <div>
-            <label className="mb-2 block text-sm font-semibold text-slate-700">
-              🔍 Search Member
-            </label>
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Name, mobile, or registration #"
-              className="w-full rounded-lg border border-slate-300 px-4 py-3 text-slate-900 placeholder-slate-500 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10"
-            />
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-semibold text-slate-700">
-              🔎 Filter by Status
-            </label>
-            <select
-              value={filterBy}
-              onChange={(e) => setFilterBy(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10"
-            >
-              <option value="all">All Members ({members.length})</option>
-              <option value="checked-in">✓ Checked In</option>
-              <option value="pending">⏳ Pending Entry</option>
-              <option value="whatsapp-sent">📱 WhatsApp Sent</option>
-              <option value="whatsapp-not-sent">❌ WhatsApp Not Sent</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="rounded-lg bg-blue-50 px-4 py-3 text-sm text-blue-900">
-          🔍 Showing <strong>{filteredMembers.length}</strong> of <strong>{members.length}</strong> members
-        </div>
+    <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm transition hover:shadow-md">
+      <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <label className="text-xs font-medium text-slate-600">
+          <select
+            value={pageSize}
+            onChange={(e) => setPageSize(Number(e.target.value))}
+            className="mr-2 rounded border border-slate-300 px-2 py-1 text-xs"
+          >
+            <option value={10}>10</option>
+            <option value={25}>25</option>
+            <option value={50}>50</option>
+          </select>
+          entries per Page
+        </label>
+        <input
+          type="text"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Search..."
+          className="w-full max-w-48 rounded border border-slate-300 px-3 py-1.5 text-sm"
+        />
       </div>
 
       {/* Members Table */}
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-full border-collapse">
+      <div className="overflow-x-auto border border-slate-200 rounded-lg">
+        <table className="w-full">
           <thead>
-            <tr className="border-b-2 border-slate-200 bg-slate-50">
-              <th className="px-4 py-4 text-left text-sm font-bold text-slate-900">Reg #</th>
-              <th className="px-4 py-4 text-left text-sm font-bold text-slate-900">Name</th>
-              <th className="px-4 py-4 text-left text-sm font-bold text-slate-900">Mobile</th>
-              <th className="px-4 py-4 text-left text-sm font-bold text-slate-900">Category</th>
-              <th className="px-4 py-4 text-center text-sm font-bold text-slate-900">Check-In</th>
-              <th className="px-4 py-4 text-center text-sm font-bold text-slate-900">WhatsApp</th>
-              <th className="px-4 py-4 text-center text-sm font-bold text-slate-900">Actions</th>
+            <tr>
+              <th>SN</th>
+              <th>User ID</th>
+              <th>Name</th>
+              <th>Category</th>
+              <th>Email</th>
+              <th>Mobile</th>
+              <th>Gender</th>
+              <th>Date</th>
+              <th style={{textAlign: 'center'}}>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {filteredMembers.length > 0 ? (
-              filteredMembers.map((member) => (
-                <tr key={member._id} className="border-b border-slate-200 hover:bg-slate-50 transition">
-                  <td className="px-4 py-4 font-medium text-slate-800">
-                    {member.registrationNo}
-                  </td>
-                  <td className="px-4 py-4 text-slate-900">{member.name}</td>
-                  <td className="px-4 py-4 text-slate-700">{member.mobile}</td>
-                  <td className="px-4 py-4 text-slate-700">
-                    {member.category?.categoryName || "-"}
-                  </td>
-                  <td className="px-4 py-4 text-center">
-                    <span
-                      className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
-                        member.isCheckedIn
-                          ? "bg-emerald-100 text-emerald-700"
-                          : "bg-amber-100 text-amber-700"
-                      }`}
-                    >
-                      {member.isCheckedIn ? "✓ Checked" : "⏳ Pending"}
-                    </span>
-                  </td>
-                  <td className="px-4 py-4 text-center">
-                    <span
-                      className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
-                        member.whatsappSent
-                          ? "bg-green-100 text-green-700"
-                          : "bg-gray-100 text-gray-700"
-                      }`}
-                    >
-                      {member.whatsappSent ? "✓ Sent" : "◯ Not Sent"}
-                    </span>
-                  </td>
-                  <td className="px-4 py-4 text-center">
-                    <div className="flex flex-wrap justify-center gap-2">
+            {paginatedMembers.length > 0 ? (
+              paginatedMembers.map((member, index) => (
+                <tr key={member._id}>
+                  <td style={{fontWeight: "600"}}>{index + 1}</td>
+                  <td>{member.registrationNo || "-"}</td>
+                  <td>{member.name}</td>
+                  <td>{member.category?.categoryName || "-"}</td>
+                  <td>{member.email || "-"}</td>
+                  <td>{member.mobile}</td>
+                  <td>{member.gender || "-"}</td>
+                  <td>{member.createdAt ? new Date(member.createdAt).toLocaleDateString() : "-"}</td>
+                  <td style={{ textAlign: "center" }}>
+                    <div className="flex flex-wrap justify-center gap-1.5">
                       <button
                         onClick={() => onEdit(member)}
-                        className="rounded-lg bg-blue-500 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-600 transition duration-200 flex items-center gap-1"
-                        title="Edit member details"
+                        className="btn-primary btn-sm"
+                        title="View member"
                       >
-                        ✎ Edit
-                      </button>
-                      <button
-                        onClick={() => onResendWhatsApp(member)}
-                        className="rounded-lg bg-green-600 px-3 py-2 text-xs font-semibold text-white hover:bg-green-700 transition duration-200 flex items-center gap-1"
-                        title="Resend WhatsApp message"
-                      >
-                        📱 Resend
+                        View
                       </button>
                       <button
                         onClick={() => onDelete(member._id, member.name)}
-                        className="rounded-lg bg-red-600 px-3 py-2 text-xs font-semibold text-white hover:bg-red-700 transition duration-200 flex items-center gap-1"
+                        className="btn-danger btn-sm"
                         title="Delete member"
                       >
-                        ✕ Delete
+                        Delete
                       </button>
+                      {canTestQr && (
+                        <button
+                          onClick={() => setSelectedMember(member)}
+                          className="btn-secondary btn-sm"
+                          title="Test QR"
+                        >
+                          QR / PDF
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td
-                  colSpan="7"
-                  className="px-4 py-8 text-center text-slate-500"
-                >
-                  <div className="flex flex-col items-center gap-2">
-                    <span className="text-2xl">📭</span>
-                    <span className="font-medium">No members found</span>
+                <td colSpan="9" style={{ textAlign: "center", padding: "2rem" }}>
+                  <div className="empty-state">
+                    <div className="empty-state-title">No members found</div>
+                    <p className="empty-state-text">Try adjusting your filters or search term</p>
                   </div>
                 </td>
               </tr>
@@ -167,6 +159,55 @@ function MemberList({
           </tbody>
         </table>
       </div>
+
+      <p className="mt-3 text-xs text-slate-500">
+        Showing 1 to {paginatedMembers.length} of {filteredMembers.length} entries
+      </p>
+
+      {selectedMember && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
+          <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-xl">
+            <div className="mb-3 flex items-start justify-between gap-3">
+              <div>
+                <h4 className="text-lg font-bold text-slate-900">QR Test Preview</h4>
+                <p className="text-xs text-slate-600">{selectedMember.name} ({selectedMember.registrationNo || "-"})</p>
+              </div>
+              <button
+                type="button"
+                className="btn-secondary btn-sm"
+                onClick={() => setSelectedMember(null)}
+              >
+                Close
+              </button>
+            </div>
+
+            {selectedMember.qrCode ? (
+              <div className="rounded-lg border border-slate-200 p-4 text-center">
+                <img
+                  src={selectedMember.qrCode}
+                  alt={`QR for ${selectedMember.name}`}
+                  className="mx-auto h-64 w-64 rounded border border-slate-200 bg-white p-1"
+                />
+              </div>
+            ) : (
+              <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                QR code is not available for this attendee.
+              </div>
+            )}
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                type="button"
+                className="btn-primary btn-sm"
+                onClick={handlePrintTicketPdf}
+                disabled={!selectedMember.qrCode}
+              >
+                Download / Print PDF
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
