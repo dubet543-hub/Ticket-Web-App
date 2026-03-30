@@ -11,15 +11,41 @@ function ReportView({
   const [salesPerson, setSalesPerson] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
+  const [appliedFilters, setAppliedFilters] = useState({
+    searchFacility: "",
+    salesPerson: "",
+    fromDate: "",
+    toDate: "",
+  });
 
   const filteredAttendees = useMemo(() => {
+    const { searchFacility: selectedFacility, salesPerson: selectedSalesPerson, fromDate: selectedFromDate, toDate: selectedToDate } = appliedFilters;
+
     return attendees.filter((item) => {
-      const createdAt = item.createdAt ? new Date(item.createdAt) : null;
-      const fromOk = !fromDate || (createdAt && createdAt >= new Date(fromDate));
-      const toOk = !toDate || (createdAt && createdAt <= new Date(`${toDate}T23:59:59`));
-      return fromOk && toOk;
+      const matchesFacility =
+        type !== "facility" ||
+        !selectedFacility ||
+        (Array.isArray(item.checkInHistory)
+          ? item.checkInHistory.some((entry) => {
+              const facilityId = entry?.facility?._id || entry?.facility;
+              return String(facilityId || "") === String(selectedFacility);
+            })
+          : false);
+
+      let matchesSalesPerson = true;
+      if (type === "registration" && selectedSalesPerson) {
+        const createdById = item.createdBy?._id || item.createdBy;
+        matchesSalesPerson = String(createdById || "") === String(selectedSalesPerson);
+      }
+
+      const referenceDate = item.createdAt || item.checkedInAt;
+      const createdAt = referenceDate ? new Date(referenceDate) : null;
+      const fromOk = !selectedFromDate || (createdAt && createdAt >= new Date(`${selectedFromDate}T00:00:00`));
+      const toOk = !selectedToDate || (createdAt && createdAt <= new Date(`${selectedToDate}T23:59:59.999`));
+
+      return matchesFacility && matchesSalesPerson && fromOk && toOk;
     });
-  }, [attendees, fromDate, toDate]);
+  }, [attendees, type, appliedFilters]);
 
   const reportTitle =
     type === "facility"
@@ -40,11 +66,70 @@ function ReportView({
     setSalesPerson("");
     setFromDate("");
     setToDate("");
+    setAppliedFilters({
+      searchFacility: "",
+      salesPerson: "",
+      fromDate: "",
+      toDate: "",
+    });
+  };
+
+  const submitFilters = () => {
+    setAppliedFilters({
+      searchFacility,
+      salesPerson,
+      fromDate,
+      toDate,
+    });
+  };
+
+  const formatDate = (value) => {
+    if (!value) return "-";
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? "-" : date.toLocaleDateString();
   };
 
   return (
-    <div className="space-y-5">
-      <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+    <>
+      <style>{`
+        @media print {
+          @page {
+            size: auto;
+            margin: 12mm;
+          }
+
+          body * {
+            visibility: hidden !important;
+          }
+
+          .report-print-area,
+          .report-print-area * {
+            visibility: visible !important;
+          }
+
+          .report-print-area {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            margin: 0 !important;
+            border: none !important;
+            box-shadow: none !important;
+            background: #fff !important;
+          }
+
+          .report-print-area .overflow-x-auto {
+            overflow: visible !important;
+          }
+
+          .report-print-hide {
+            display: none !important;
+          }
+        }
+      `}</style>
+
+      <div className="space-y-5">
+      <div className="report-print-hide rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
         <h3 className="mb-3 text-lg font-bold text-slate-900">Search Here</h3>
 
         {type === "facility" && (
@@ -129,7 +214,7 @@ function ReportView({
         )}
 
         <div className="mt-3 flex gap-2">
-          <button type="button" className="btn-primary btn-sm" onClick={() => {}}>
+          <button type="button" className="btn-primary btn-sm" onClick={submitFilters}>
             Submit
           </button>
           <button type="button" className="btn-secondary btn-sm" onClick={resetFilters}>
@@ -138,7 +223,7 @@ function ReportView({
         </div>
       </div>
 
-      <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="report-print-area rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
         <h3 className="text-center text-2xl font-semibold text-slate-900">{reportTitle}</h3>
         <p className="mt-2 text-center text-sm text-slate-600">CENTRE POINT HOTELS & RESORTS</p>
 
@@ -167,19 +252,25 @@ function ReportView({
                 </tr>
               </thead>
               <tbody>
-                {filteredAttendees.map((item, index) => (
-                  <tr key={item._id}>
-                    <td>{index + 1}</td>
-                    <td>{item.registrationNo || "-"}</td>
-                    <td>{item.category?.categoryName || "-"}</td>
-                    <td>{item.name || "-"}</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>{item.checkedInAt ? new Date(item.checkedInAt).toLocaleDateString() : "-"}</td>
-                    <td>{item.checkedInBy || "Centre Point Hotel"}</td>
-                    <td>-</td>
+                {filteredAttendees.length === 0 ? (
+                  <tr>
+                    <td colSpan={9} className="py-6 text-center text-slate-500">No report data found.</td>
                   </tr>
-                ))}
+                ) : (
+                  filteredAttendees.map((item, index) => (
+                    <tr key={item._id}>
+                      <td>{index + 1}</td>
+                      <td>{item.registrationNo || "-"}</td>
+                      <td>{item.category?.categoryName || "-"}</td>
+                      <td>{item.name || "-"}</td>
+                      <td>-</td>
+                      <td>-</td>
+                      <td>{formatDate(item.checkedInAt)}</td>
+                      <td>{item.checkedInBy || "Centre Point Hotel"}</td>
+                      <td>-</td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -203,20 +294,26 @@ function ReportView({
                 </tr>
               </thead>
               <tbody>
-                {filteredAttendees.map((item, index) => (
-                  <tr key={item._id}>
-                    <td>{index + 1}</td>
-                    <td>{item.registrationNo || "-"}</td>
-                    <td>{item.name || "-"}</td>
-                    <td>{item.category?.categoryName || "-"}</td>
-                    <td>{item.amount || 0}</td>
-                    <td>{item.category?.coverPrice || 0}</td>
-                    <td>{item.mobile || "-"}</td>
-                    <td>{item.gender || "-"}</td>
-                    <td>{item.createdBy?.name || "Centre Point Hotel"}</td>
-                    <td>{item.createdAt ? new Date(item.createdAt).toLocaleDateString() : "-"}</td>
+                {filteredAttendees.length === 0 ? (
+                  <tr>
+                    <td colSpan={10} className="py-6 text-center text-slate-500">No report data found.</td>
                   </tr>
-                ))}
+                ) : (
+                  filteredAttendees.map((item, index) => (
+                    <tr key={item._id}>
+                      <td>{index + 1}</td>
+                      <td>{item.registrationNo || "-"}</td>
+                      <td>{item.name || "-"}</td>
+                      <td>{item.category?.categoryName || "-"}</td>
+                      <td>{item.amount || 0}</td>
+                      <td>{item.category?.coverPrice || 0}</td>
+                      <td>{item.mobile || "-"}</td>
+                      <td>{item.gender || "-"}</td>
+                      <td>{item.createdBy?.name || "Centre Point Hotel"}</td>
+                      <td>{formatDate(item.createdAt)}</td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -238,28 +335,35 @@ function ReportView({
                 </tr>
               </thead>
               <tbody>
-                {filteredAttendees.map((item, index) => (
-                  <tr key={item._id}>
-                    <td>{index + 1}</td>
-                    <td>{item.registrationNo || "-"}</td>
-                    <td>{item.name || "-"}</td>
-                    <td>{item.category?.categoryName || "-"}</td>
-                    <td>{item.email || "-"}</td>
-                    <td>{item.mobile || "-"}</td>
-                    <td>{item.gender || "-"}</td>
-                    <td>{item.createdAt ? new Date(item.createdAt).toLocaleDateString() : "-"}</td>
+                {filteredAttendees.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="py-6 text-center text-slate-500">No report data found.</td>
                   </tr>
-                ))}
+                ) : (
+                  filteredAttendees.map((item, index) => (
+                    <tr key={item._id}>
+                      <td>{index + 1}</td>
+                      <td>{item.registrationNo || "-"}</td>
+                      <td>{item.name || "-"}</td>
+                      <td>{item.category?.categoryName || "-"}</td>
+                      <td>{item.email || "-"}</td>
+                      <td>{item.mobile || "-"}</td>
+                      <td>{item.gender || "-"}</td>
+                      <td>{formatDate(item.createdAt)}</td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
         )}
 
-        <button type="button" className="btn-primary mt-5 w-full justify-center" onClick={onPrintReport}>
+        <button type="button" className="report-print-hide btn-primary mt-5 w-full justify-center" onClick={onPrintReport}>
           Print
         </button>
       </div>
     </div>
+    </>
   );
 }
 
