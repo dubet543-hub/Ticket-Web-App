@@ -348,24 +348,4 @@ function Sidebar({ activeMenu, setActiveMenu, currentUser, allowedMenus = [], on
   );
 }
 
-// Demo wrapper
-export default function App() {
-  const [activeMenu, setActiveMenu] = useState("dashboard");
-  return (
-    <div style={{ display: "flex", height: "100vh", background: "#f0f4fa" }}>
-      <Sidebar
-        activeMenu={activeMenu}
-        setActiveMenu={setActiveMenu}
-        currentUser={{ name: "Rahul Sharma", role: "Admin" }}
-        allowedMenus={["dashboard","master","users","attendees","check-in","reports","add-category","add-facility","member-report","facility-report","registration-report"]}
-        onLogout={() => alert("Logged out")}
-      />
-      <main style={{ flex: 1, padding: 32, fontFamily: "DM Sans, sans-serif" }}>
-        <h2 style={{ color: "#1a2b4a", fontWeight: 700, fontSize: 18, marginBottom: 8 }}>
-          Active: <span style={{ color: "#2f5ec4" }}>{activeMenu}</span>
-        </h2>
-        <p style={{ color: "#64748b", fontSize: 13 }}>Click sidebar items to navigate.</p>
-      </main>
-    </div>
-  );
-}
+export default Sidebar;

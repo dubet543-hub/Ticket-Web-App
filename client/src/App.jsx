@@ -613,7 +613,7 @@ function App() {
               onLogout={handleLogout}
             />
             
-            <main className="flex-1 p-4 md:ml-56 md:p-8 lg:p-10">
+            <main className="flex-1 p-4 md:p-8 lg:p-10">
               <div className="mx-auto w-full max-w-7xl space-y-6 fade-up">
               <div className="sticky top-0 z-20 -mx-1 rounded-xl border border-[#d2e0ef] bg-white/85 p-3 backdrop-blur md:hidden">
                 <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">Navigate</p>
