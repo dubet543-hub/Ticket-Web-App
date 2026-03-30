@@ -7,7 +7,6 @@ import CategoryForm from "./components/CategoryForm";
 import FacilityForm from "./components/FacilityForm";
 import UserManagement from "./components/UserManagement";
 import CheckInScanner from "./components/CheckInScanner";
-import MemberList from "./components/MemberList";
 import AttendeeForm from "./components/AttendeeForm";
 import ReportView from "./components/ReportView";
 import Login from "./components/Login";
@@ -708,9 +707,9 @@ function App() {
                 <div className="space-y-8">
                   <div className="rounded-2xl border border-[#d3e2ef] bg-white/85 px-6 py-5 shadow-sm">
                     <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Member</p>
-                    <h1 className="mt-2 text-3xl font-bold text-slate-900">Member List</h1>
-                    <p className="mt-1 text-xs text-slate-500">Home / Member / Member List</p>
-                    <p className="mt-2 text-sm text-slate-600">View and manage registered members.</p>
+                    <h1 className="mt-2 text-3xl font-bold text-slate-900">Add Member</h1>
+                    <p className="mt-1 text-xs text-slate-500">Home / Member / Add Member</p>
+                    <p className="mt-2 text-sm text-slate-600">Register a new member quickly with all required ticket details.</p>
                   </div>
                   <AttendeeForm
                     attendeeForm={attendeeForm}
@@ -720,12 +719,6 @@ function App() {
                     onFormChange={handleAttendeeChange}
                     onSubmit={handleAttendeeSubmit}
                     onCancelEdit={resetAttendeeForm}
-                  />
-                  <MemberList
-                    members={attendees}
-                    onEdit={handleEditAttendee}
-                    onDelete={handleDeleteAttendee}
-                    canTestQr={currentRole === "Admin"}
                   />
                 </div>
               )}
