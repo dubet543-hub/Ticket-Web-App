@@ -1,46 +1,28 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 
 const styles = `
-  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
-
-  .cf-root * {
-    box-sizing: border-box;
-    font-family: 'DM Sans', sans-serif;
-  }
+  @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=DM+Mono:wght@400;500;700&family=DM+Sans:wght@400;500;600&display=swap');
 
   .cf-root {
-    --cf-bg: #f8f9fb;
-    --cf-white: #ffffff;
-    --cf-border: #e4e7ec;
-    --cf-border-focus: #6366f1;
-    --cf-text-primary: #0f172a;
-    --cf-text-secondary: #64748b;
-    --cf-text-muted: #94a3b8;
-    --cf-accent: #6366f1;
-    --cf-accent-light: #eef2ff;
-    --cf-accent-hover: #4f46e5;
-    --cf-danger: #ef4444;
-    --cf-success: #10b981;
-    --cf-shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-    --cf-shadow-md: 0 4px 16px rgba(0,0,0,0.06), 0 1px 4px rgba(0,0,0,0.04);
-    --cf-radius: 12px;
-    --cf-radius-sm: 8px;
-    --cf-radius-xs: 6px;
-
-    background: var(--cf-bg);
-    padding: 24px;
+    font-family: 'DM Sans', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    background: transparent;
     min-height: 100vh;
+    padding: 1px 15px;
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 24px;
   }
 
   /* ── PAGE HEADER ── */
-  .cf-page-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 4px;
+  .cf-page-header { display: flex; flex-direction: column; gap: 4px; }
+
+  .cf-page-title {
+    font-family: 'Sora', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: #0f172a;
   }
 
   .cf-breadcrumb {
@@ -48,165 +30,162 @@ const styles = `
     align-items: center;
     gap: 6px;
     font-size: 12px;
-    color: var(--cf-text-muted);
-    letter-spacing: 0.01em;
-  }
-
-  .cf-breadcrumb span + span::before {
-    content: '/';
-    margin-right: 6px;
-    color: var(--cf-border);
-  }
-
-  .cf-breadcrumb span:last-child {
-    color: var(--cf-accent);
+    color: #94a3b8;
     font-weight: 500;
   }
 
+  .cf-breadcrumb-sep { opacity: 0.5; font-size: 11px; }
+  .cf-breadcrumb-active { color: #1a8f84; font-weight: 600; }
+
   /* ── CARD ── */
   .cf-card {
-    background: var(--cf-white);
-    border: 1px solid var(--cf-border);
-    border-radius: var(--cf-radius);
-    box-shadow: var(--cf-shadow-sm);
+    width: 100%;
+    background: #ffffff;
+    border: 1.5px solid #ccdde8;
+    border-radius: 16px;
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.8),
+      0 4px 6px rgba(15,30,55,0.06),
+      0 12px 28px rgba(15,30,55,0.12),
+      0 24px 48px rgba(15,30,55,0.06);
     overflow: hidden;
-    transition: box-shadow 0.2s ease;
-  }
-
-  .cf-card:hover {
-    box-shadow: var(--cf-shadow-md);
-  }
-
-  .cf-card-header {
-    padding: 20px 24px 0;
-    border-bottom: 1px solid var(--cf-border);
-    margin-bottom: 0;
-    padding-bottom: 16px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-
-  .cf-card-icon {
-    width: 36px;
-    height: 36px;
-    border-radius: var(--cf-radius-sm);
-    background: var(--cf-accent-light);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-  }
-
-  .cf-card-icon svg {
-    width: 18px;
-    height: 18px;
-    stroke: var(--cf-accent);
-  }
-
-  .cf-card-title {
-    font-size: 15px;
-    font-weight: 700;
-    color: var(--cf-text-primary);
-    margin: 0;
-    line-height: 1.3;
-  }
-
-  .cf-card-subtitle {
-    font-size: 11.5px;
-    color: var(--cf-text-muted);
-    margin: 1px 0 0;
-    line-height: 1.4;
-  }
-
-  .cf-card-body {
-    padding: 20px 24px 24px;
-  }
-
-  /* ── FORM ── */
-  .cf-form {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
-
-  .cf-fields-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
-  }
-
-  @media (max-width: 680px) {
-    .cf-fields-grid {
-      grid-template-columns: 1fr;
-    }
-  }
-
-  @media (min-width: 681px) and (max-width: 900px) {
-    .cf-fields-grid {
-      grid-template-columns: repeat(2, 1fr);
-    }
-  }
-
-  .cf-field {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-
-  .cf-label {
-    font-size: 12.5px;
-    font-weight: 600;
-    color: var(--cf-text-secondary);
-    letter-spacing: 0.02em;
-    text-transform: uppercase;
-    display: flex;
-    align-items: center;
-    gap: 3px;
-  }
-
-  .cf-required {
-    color: var(--cf-danger);
-    font-size: 13px;
-    line-height: 1;
-  }
-
-  .cf-input-wrap {
     position: relative;
   }
 
-  .cf-input-prefix {
+  .cf-topbar {
+    height: 4px;
+    background: linear-gradient(90deg, #1a8f84, #24a79c, #3bc1b5);
+  }
+
+  .cf-card-body { padding: 28px 32px 32px; }
+
+  @media (max-width: 560px) {
+    .cf-card-body { padding: 20px 18px 24px; }
+    .cf-root { padding: 16px; }
+  }
+
+  /* ── CARD HEADER ── */
+  .cf-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 26px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #e8f1f8;
+  }
+
+  .cf-eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #94a3b8;
+    margin-bottom: 6px;
+  }
+
+  .cf-mode-dot {
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #1a8f84;
+    animation: cf-glow 2s infinite;
+    flex-shrink: 0;
+  }
+
+  @keyframes cf-glow {
+    0%   { box-shadow: 0 0 0 0 rgba(26,143,132,0.45); }
+    70%  { box-shadow: 0 0 0 6px rgba(26,143,132,0); }
+    100% { box-shadow: 0 0 0 0 rgba(26,143,132,0); }
+  }
+
+  .cf-title {
+    font-family: 'Sora', sans-serif;
+    font-size: 1.4rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: #0f172a;
+    line-height: 1.15;
+  }
+
+  .cf-subtitle { font-size: 13px; color: #64748b; margin-top: 4px; }
+
+  /* ── SECTION ── */
+  .cf-section-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #94a3b8;
+    margin-bottom: 14px;
+  }
+
+  /* ── FORM STACK ── */
+  .cf-form-stack { display: flex; flex-direction: column; gap: 20px; }
+
+  .cf-grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 18px;
+  }
+
+  @media (max-width: 900px) { .cf-grid-3 { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 560px) { .cf-grid-3 { grid-template-columns: 1fr; } }
+
+  .cf-field { display: flex; flex-direction: column; gap: 7px; }
+
+  .cf-label {
+    font-size: 10.5px;
+    font-weight: 700;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: #475569;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .cf-required { color: #e11d48; }
+
+  .cf-input-wrap { position: relative; }
+
+  .cf-prefix {
     position: absolute;
-    left: 12px;
+    left: 13px;
     top: 50%;
     transform: translateY(-50%);
     font-size: 13px;
-    font-weight: 600;
-    color: var(--cf-text-muted);
+    font-weight: 700;
+    color: #94a3b8;
     font-family: 'DM Mono', monospace;
     pointer-events: none;
     user-select: none;
+    z-index: 1;
   }
 
   .cf-input {
     width: 100%;
-    height: 40px;
-    border: 1.5px solid var(--cf-border);
-    border-radius: var(--cf-radius-xs);
-    background: var(--cf-bg);
+    height: 42px;
+    padding: 0 14px;
     font-size: 13.5px;
-    font-weight: 400;
-    color: var(--cf-text-primary);
-    padding: 0 12px;
+    font-family: 'DM Sans', sans-serif;
+    color: #0f172a;
+    background: #f8fafc;
+    border: 1.5px solid #dde9f2;
+    border-radius: 11px;
     outline: none;
-    transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+    transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
     -moz-appearance: textfield;
   }
 
   .cf-input::-webkit-outer-spin-button,
-  .cf-input::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-  }
+  .cf-input::-webkit-inner-spin-button { -webkit-appearance: none; }
 
   .cf-input.has-prefix {
     padding-left: 28px;
@@ -214,101 +193,120 @@ const styles = `
     font-size: 13px;
   }
 
-  .cf-input:hover {
-    border-color: #c7cdd8;
-    background: #fafbfc;
-  }
+  .cf-input::placeholder { color: #b0bec5; }
+
+  .cf-input:hover:not(:focus) { border-color: #b8d0e4; background: #fff; }
 
   .cf-input:focus {
-    border-color: var(--cf-border-focus);
-    background: var(--cf-white);
-    box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+    border-color: #1a8f84;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(26,143,132,0.13);
   }
 
-  .cf-input::placeholder {
-    color: var(--cf-text-muted);
-    font-weight: 400;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
+  /* ── DIVIDER ── */
+  .cf-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #dde9f2, transparent);
   }
 
-  /* ── BUTTONS ── */
+  /* ── ACTIONS ── */
   .cf-actions {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding-top: 4px;
-    justify-content: flex-start;
+    gap: 12px;
     flex-wrap: wrap;
   }
 
-  .cf-btn {
+  .cf-submit-btn {
+    flex: 1;
+    min-width: 140px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    background: linear-gradient(135deg, #1a8f84, #24a79c);
+    color: #fff;
+    border: none;
+    border-radius: 13px;
+    font-size: 14.5px;
+    font-weight: 700;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    box-shadow: 0 2px 12px rgba(26,143,132,0.3);
+    transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+  }
+
+  .cf-submit-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(26,143,132,0.38);
+  }
+
+  .cf-submit-btn:active:not(:disabled) { transform: translateY(0); }
+  .cf-submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  .cf-reset-btn {
+    height: 48px;
+    padding: 0 22px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 7px;
-    height: 38px;
-    min-width: 110px;
-    padding: 0 18px;
-    border-radius: var(--cf-radius-xs);
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 13px;
     font-size: 13.5px;
     font-weight: 600;
+    font-family: 'DM Sans', sans-serif;
+    color: #475569;
     cursor: pointer;
-    border: 1.5px solid transparent;
-    transition: all 0.15s ease;
-    letter-spacing: 0.01em;
-    outline: none;
+    transition: background 0.15s, transform 0.15s;
     white-space: nowrap;
   }
 
-  .cf-btn-primary {
-    background: var(--cf-accent);
-    color: white;
-    border-color: var(--cf-accent);
-  }
-
-  .cf-btn-primary:hover:not(:disabled) {
-    background: var(--cf-accent-hover);
-    border-color: var(--cf-accent-hover);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(99,102,241,0.3);
-  }
-
-  .cf-btn-primary:active:not(:disabled) {
-    transform: translateY(0);
-    box-shadow: none;
-  }
-
-  .cf-btn-primary:disabled {
-    opacity: 0.65;
-    cursor: not-allowed;
-  }
-
-  .cf-btn-secondary {
-    background: transparent;
-    color: var(--cf-text-secondary);
-    border-color: var(--cf-border);
-  }
-
-  .cf-btn-secondary:hover {
-    background: var(--cf-bg);
-    color: var(--cf-text-primary);
-    border-color: #c7cdd8;
-  }
+  .cf-reset-btn:hover { background: #e2e8f0; transform: translateY(-1px); }
 
   /* ── SPINNER ── */
   .cf-spinner {
-    width: 14px;
-    height: 14px;
-    border: 2px solid rgba(255,255,255,0.35);
-    border-top-color: white;
+    width: 18px; height: 18px;
+    border: 2.5px solid rgba(255,255,255,0.3);
+    border-top-color: #fff;
     border-radius: 50%;
-    animation: cf-spin 0.65s linear infinite;
-    flex-shrink: 0;
+    animation: cf-spin 0.7s linear infinite;
   }
 
-  @keyframes cf-spin {
-    to { transform: rotate(360deg); }
+  @keyframes cf-spin { to { transform: rotate(360deg); } }
+
+  /* ── TOAST ── */
+  .cf-toast {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 13px 18px;
+    border-radius: 13px;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: 'DM Sans', sans-serif;
+    border: 1.5px solid;
+    animation: cf-slideIn 0.25s ease;
+  }
+
+  @keyframes cf-slideIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .cf-toast-success {
+    background: linear-gradient(135deg, #f0fdf9, #ecfdf5);
+    border-color: #a7f3d0;
+    color: #065f46;
+  }
+
+  .cf-toast-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: #10b981;
+    flex-shrink: 0;
   }
 
   /* ── TABLE CARD ── */
@@ -318,195 +316,167 @@ const styles = `
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    border-bottom: 1px solid var(--cf-border);
+    border-bottom: 1px solid #e8f1f8;
     flex-wrap: wrap;
   }
 
   .cf-table-title {
+    font-family: 'Sora', sans-serif;
     font-size: 14px;
     font-weight: 700;
-    color: var(--cf-text-primary);
+    color: #0f172a;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 9px;
+    letter-spacing: -0.1px;
   }
 
-  .cf-count-badge {
+  .cf-badge {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     min-width: 22px;
-    height: 22px;
+    height: 20px;
     padding: 0 7px;
     border-radius: 20px;
-    background: var(--cf-accent-light);
-    color: var(--cf-accent);
-    font-size: 11px;
+    background: rgba(26,143,132,0.1);
+    border: 1px solid rgba(26,143,132,0.2);
+    color: #1a8f84;
+    font-size: 10.5px;
     font-weight: 700;
     font-family: 'DM Mono', monospace;
   }
 
-  .cf-search-wrap {
-    position: relative;
-    display: flex;
-    align-items: center;
-  }
+  .cf-search-wrap { position: relative; display: flex; align-items: center; }
 
   .cf-search-icon {
     position: absolute;
-    left: 10px;
-    width: 14px;
-    height: 14px;
-    stroke: var(--cf-text-muted);
+    left: 11px;
+    width: 14px; height: 14px;
+    stroke: #94a3b8;
     pointer-events: none;
+    flex-shrink: 0;
   }
 
   .cf-search {
-    height: 34px;
-    width: 200px;
-    border: 1.5px solid var(--cf-border);
-    border-radius: var(--cf-radius-xs);
-    background: var(--cf-bg);
+    height: 36px;
+    width: 210px;
+    border: 1.5px solid #dde9f2;
+    border-radius: 10px;
+    background: #f8fafc;
     font-size: 12.5px;
-    color: var(--cf-text-primary);
-    padding: 0 10px 0 32px;
+    color: #0f172a;
+    padding: 0 12px 0 34px;
     outline: none;
-    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    font-family: 'DM Sans', sans-serif;
+    transition: border-color 0.15s, box-shadow 0.15s;
   }
 
   .cf-search:focus {
-    border-color: var(--cf-border-focus);
-    box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
-    background: var(--cf-white);
+    border-color: #1a8f84;
+    box-shadow: 0 0 0 3px rgba(26,143,132,0.13);
+    background: #fff;
   }
 
-  .cf-search::placeholder {
-    color: var(--cf-text-muted);
+  .cf-search::placeholder { color: #b0bec5; font-size: 12px; }
+
+  @media (max-width: 560px) {
+    .cf-search { width: 100%; }
+    .cf-table-toolbar { flex-direction: column; align-items: flex-start; }
   }
 
   /* ── TABLE ── */
-  .cf-table-wrap {
-    overflow-x: auto;
-  }
+  .cf-table-wrap { overflow-x: auto; }
 
-  .cf-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13.5px;
-  }
+  .cf-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
 
   .cf-table thead tr {
-    background: #f8f9fb;
-    border-bottom: 1.5px solid var(--cf-border);
+    background: #f8fafc;
+    border-bottom: 1.5px solid #e8f1f8;
   }
 
   .cf-table th {
-    padding: 10px 16px;
+    padding: 10px 18px;
     text-align: left;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 700;
-    color: var(--cf-text-muted);
-    letter-spacing: 0.06em;
+    color: #94a3b8;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
     white-space: nowrap;
+    font-family: 'DM Mono', monospace;
   }
 
-  .cf-table th:first-child {
-    width: 52px;
-    text-align: center;
-  }
-
-  .cf-table th.align-right,
-  .cf-table td.align-right {
-    text-align: right;
-  }
+  .cf-table th:first-child { width: 52px; text-align: center; }
+  .cf-table th.ar, .cf-table td.ar { text-align: right; }
 
   .cf-table tbody tr {
-    border-bottom: 1px solid #f1f4f8;
-    transition: background 0.1s ease;
+    border-bottom: 1px solid #f0f6fb;
+    transition: background 0.1s;
   }
 
-  .cf-table tbody tr:last-child {
-    border-bottom: none;
-  }
-
-  .cf-table tbody tr:hover {
-    background: #fafbff;
-  }
+  .cf-table tbody tr:last-child { border-bottom: none; }
+  .cf-table tbody tr:hover { background: rgba(26,143,132,0.04); }
 
   .cf-table td {
-    padding: 12px 16px;
-    color: var(--cf-text-primary);
+    padding: 13px 18px;
+    color: #0f172a;
     vertical-align: middle;
+    font-family: 'DM Sans', sans-serif;
   }
 
   .cf-table td:first-child {
     text-align: center;
-    color: var(--cf-text-muted);
-    font-size: 12px;
+    color: #94a3b8;
+    font-size: 11.5px;
     font-family: 'DM Mono', monospace;
     font-weight: 500;
   }
 
-  .cf-category-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-weight: 500;
-  }
+  .cf-cat-pill { display: inline-flex; align-items: center; gap: 8px; font-weight: 500; }
 
-  .cf-category-dot {
-    width: 7px;
-    height: 7px;
+  .cf-cat-dot {
+    width: 6px; height: 6px;
     border-radius: 50%;
-    background: var(--cf-accent);
-    flex-shrink: 0;
+    background: #1a8f84;
     opacity: 0.6;
+    flex-shrink: 0;
   }
 
   .cf-price {
     font-family: 'DM Mono', monospace;
     font-size: 13px;
     font-weight: 500;
-    color: var(--cf-text-primary);
+    color: #0f172a;
   }
 
-  .cf-price-zero {
-    color: var(--cf-text-muted);
-  }
+  .cf-price-zero { color: #b0bec5; }
 
-  .cf-empty {
-    padding: 40px 16px;
-    text-align: center;
-  }
+  .cf-empty { padding: 48px 16px; text-align: center; }
 
-  .cf-empty-icon {
-    width: 40px;
-    height: 40px;
-    margin: 0 auto 10px;
-    opacity: 0.25;
-  }
+  .cf-empty-icon { width: 40px; height: 40px; margin: 0 auto 12px; opacity: 0.2; }
 
-  .cf-empty-text {
-    font-size: 13px;
-    color: var(--cf-text-muted);
-    font-weight: 500;
-  }
+  .cf-empty-text { font-size: 13px; color: #94a3b8; font-weight: 500; }
 
   .cf-table-footer {
-    padding: 10px 20px;
-    border-top: 1px solid var(--cf-border);
+    padding: 11px 20px;
+    border-top: 1px solid #e8f1f8;
     font-size: 11.5px;
-    color: var(--cf-text-muted);
+    color: #94a3b8;
     display: flex;
     align-items: center;
     gap: 4px;
+    font-family: 'DM Sans', sans-serif;
   }
 
-  .cf-table-footer strong {
-    color: var(--cf-text-secondary);
-    font-weight: 600;
+  .cf-table-footer strong { color: #475569; font-weight: 600; }
+
+  @keyframes cf-rowIn {
+    from { background: rgba(26,143,132,0.1); }
+    to   { background: transparent; }
   }
+
+  .cf-row-new { animation: cf-rowIn 1.6s ease forwards; }
 `;
 
 function CategoryForm({
@@ -514,8 +484,9 @@ function CategoryForm({
   categories = [],
   categoryLoading = false,
   onFormChange = () => {},
-  onSubmit = (e) => e.preventDefault(),
+  onSubmit = () => {},
   onReset = () => {},
+  toast = null,
 }) {
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -532,113 +503,140 @@ function CategoryForm({
       <style>{styles}</style>
       <div className="cf-root">
 
+        {/* ── PAGE HEADER ── */}
+        
+
+        {/* ── TOAST ── */}
+        {toast && (
+          <div className={`cf-toast cf-toast-${toast.type}`}>
+            <span className="cf-toast-dot" />
+            {toast.message}
+          </div>
+        )}
+
         {/* ── FORM CARD ── */}
         <div className="cf-card">
-          <div className="cf-card-header">
-            <div className="cf-card-icon">
-              <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 5v14M5 12h14" />
-              </svg>
-            </div>
-            <div>
-              <p className="cf-card-title">Add Category</p>
-              <p className="cf-card-subtitle" style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                  <span style={{ opacity: 0.5 }}>Home</span>
-                  <span style={{ opacity: 0.3, fontSize: 10 }}>›</span>
-                  <span style={{ opacity: 0.5 }}>Master</span>
-                  <span style={{ opacity: 0.3, fontSize: 10 }}>›</span>
-                  <span style={{ color: "var(--cf-accent)", fontWeight: 500 }}>Add Category</span>
-                </span>
-              </p>
-            </div>
-          </div>
-
+          <div className="cf-topbar" />
           <div className="cf-card-body">
-            <form onSubmit={onSubmit} className="cf-form">
-              <div className="cf-fields-grid">
-                {/* Category Name */}
-                <div className="cf-field">
-                  <label className="cf-label">
-                    Category Name <span className="cf-required">*</span>
-                  </label>
-                  <div className="cf-input-wrap">
+
+            <div className="cf-card-header">
+              <div>
+                <p className="cf-eyebrow">
+                  <span className="cf-mode-dot" />
+                  New Entry
+                </p>
+                <h3 className="cf-title">Add Category</h3>
+                <p className="cf-subtitle">
+                  Define a ticket category with pricing for your event.
+                </p>
+              </div>
+            </div>
+
+            <div className="cf-form-stack">
+
+              <div>
+                <p className="cf-section-title">Category Details</p>
+                <div className="cf-grid-3">
+
+                  <div className="cf-field">
+                    <label className="cf-label">
+                      Category Name <span className="cf-required">*</span>
+                    </label>
                     <input
                       type="text"
                       name="categoryName"
                       value={categoryForm.categoryName}
                       onChange={onFormChange}
-                      placeholder="Enter category name"
+                      placeholder="e.g. VIP, General"
                       className="cf-input"
+                      autoComplete="off"
                       required
                     />
                   </div>
-                </div>
 
-                {/* Ticket Price */}
-                <div className="cf-field">
-                  <label className="cf-label">
-                    Ticket Price <span className="cf-required">*</span>
-                  </label>
-                  <div className="cf-input-wrap">
-                    <span className="cf-input-prefix">₹</span>
-                    <input
-                      type="number"
-                      name="price"
-                      value={categoryForm.price}
-                      onChange={onFormChange}
-                      placeholder="e.g. 500"
-                      className="cf-input has-prefix"
-                      required
-                    />
+                  <div className="cf-field">
+                    <label className="cf-label">
+                      Ticket Price <span className="cf-required">*</span>
+                    </label>
+                    <div className="cf-input-wrap">
+                      <span className="cf-prefix">₹</span>
+                      <input
+                        type="number"
+                        name="price"
+                        value={categoryForm.price}
+                        onChange={onFormChange}
+                        placeholder="0"
+                        className="cf-input has-prefix"
+                        min="0"
+                        required
+                      />
+                    </div>
                   </div>
-                </div>
 
-                {/* Cover Price */}
-                <div className="cf-field">
-                  <label className="cf-label">
-                    Cover Price <span className="cf-required">*</span>
-                  </label>
-                  <div className="cf-input-wrap">
-                    <span className="cf-input-prefix">₹</span>
-                    <input
-                      type="number"
-                      name="coverPrice"
-                      value={categoryForm.coverPrice}
-                      onChange={onFormChange}
-                      placeholder="e.g. 0"
-                      className="cf-input has-prefix"
-                      required
-                    />
+                  <div className="cf-field">
+                    <label className="cf-label">
+                      Cover Price <span className="cf-required">*</span>
+                    </label>
+                    <div className="cf-input-wrap">
+                      <span className="cf-prefix">₹</span>
+                      <input
+                        type="number"
+                        name="coverPrice"
+                        value={categoryForm.coverPrice}
+                        onChange={onFormChange}
+                        placeholder="0"
+                        className="cf-input has-prefix"
+                        min="0"
+                        required
+                      />
+                    </div>
                   </div>
+
                 </div>
               </div>
 
+              <div className="cf-divider" />
+
               <div className="cf-actions">
-                <button type="submit" disabled={categoryLoading} className="cf-btn cf-btn-primary">
+                <button
+                  type="button"
+                  onClick={onSubmit}
+                  disabled={categoryLoading}
+                  className="cf-submit-btn"
+                >
                   {categoryLoading ? (
-                    <>
-                      <span className="cf-spinner" />
-                      <span>Saving…</span>
-                    </>
+                    <><span className="cf-spinner" /><span>Saving…</span></>
                   ) : (
-                    <span>Submit</span>
+                    <>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                        <polyline points="17 21 17 13 7 13 7 21"/>
+                        <polyline points="7 3 7 8 15 8"/>
+                      </svg>
+                      <span>Save Category</span>
+                    </>
                   )}
                 </button>
-                <button type="button" onClick={onReset} className="cf-btn cf-btn-secondary">
+                <button type="button" onClick={onReset} className="cf-reset-btn">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="1 4 1 10 7 10"/>
+                    <path d="M3.51 15a9 9 0 1 0 .49-3.17"/>
+                  </svg>
                   Reset
                 </button>
               </div>
-            </form>
+
+            </div>
           </div>
         </div>
 
         {/* ── TABLE CARD ── */}
         <div className="cf-card">
+          <div className="cf-topbar" />
           <div className="cf-table-toolbar">
             <div className="cf-table-title">
-              Categories
-              <span className="cf-count-badge">{filteredCategories.length}</span>
+              All Categories
+              <span className="cf-badge">{filteredCategories.length}</span>
             </div>
             <div className="cf-search-wrap">
               <svg className="cf-search-icon" viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -660,30 +658,33 @@ function CategoryForm({
               <thead>
                 <tr>
                   <th>#</th>
-                  <th>Category</th>
-                  <th className="align-right">Ticket Price</th>
-                  <th className="align-right">Cover Price</th>
+                  <th>Category Name</th>
+                  <th className="ar">Ticket Price</th>
+                  <th className="ar">Cover Price</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredCategories.length > 0 ? (
                   filteredCategories.map((item, index) => (
-                    <tr key={item._id || `${item.categoryName}-${index}`}>
+                    <tr
+                      key={item._id || `${item.categoryName}-${index}`}
+                      className={item._new ? "cf-row-new" : ""}
+                    >
                       <td>{String(index + 1).padStart(2, "0")}</td>
                       <td>
-                        <span className="cf-category-pill">
-                          <span className="cf-category-dot" />
+                        <span className="cf-cat-pill">
+                          <span className="cf-cat-dot" />
                           {item.categoryName}
                         </span>
                       </td>
-                      <td className="align-right">
-                        <span className={`cf-price ${!item.price || item.price === 0 ? "cf-price-zero" : ""}`}>
-                          ₹{(item.price ?? 0).toLocaleString("en-IN")}
+                      <td className="ar">
+                        <span className={`cf-price ${!item.price || Number(item.price) === 0 ? "cf-price-zero" : ""}`}>
+                          ₹{Number(item.price ?? 0).toLocaleString("en-IN")}
                         </span>
                       </td>
-                      <td className="align-right">
-                        <span className={`cf-price ${!item.coverPrice || item.coverPrice === 0 ? "cf-price-zero" : ""}`}>
-                          ₹{(item.coverPrice ?? 0).toLocaleString("en-IN")}
+                      <td className="ar">
+                        <span className={`cf-price ${!item.coverPrice || Number(item.coverPrice) === 0 ? "cf-price-zero" : ""}`}>
+                          ₹{Number(item.coverPrice ?? 0).toLocaleString("en-IN")}
                         </span>
                       </td>
                     </tr>
@@ -696,7 +697,9 @@ function CategoryForm({
                           <rect x="3" y="3" width="18" height="18" rx="3" />
                           <path d="M9 9h6M9 12h4" />
                         </svg>
-                        <p className="cf-empty-text">No categories found</p>
+                        <p className="cf-empty-text">
+                          {searchTerm ? `No results for "${searchTerm}"` : "No categories yet"}
+                        </p>
                       </div>
                     </td>
                   </tr>
@@ -706,11 +709,9 @@ function CategoryForm({
           </div>
 
           <div className="cf-table-footer">
-            Showing <strong>{filteredCategories.length}</strong>&nbsp;
+            Showing&nbsp;<strong>{filteredCategories.length}</strong>&nbsp;
             {filteredCategories.length === 1 ? "entry" : "entries"}
-            {searchTerm && (
-              <> for <strong>"{searchTerm}"</strong></>
-            )}
+            {searchTerm && <> matching <strong>"{searchTerm}"</strong></>}
           </div>
         </div>
 
@@ -719,31 +720,45 @@ function CategoryForm({
   );
 }
 
-// ── Demo wrapper so the component renders with sample data ──
-const sampleCategories = [
-  { _id: "1", categoryName: "General",    price: 500,  coverPrice: 0   },
-  { _id: "2", categoryName: "VIP",        price: 1500, coverPrice: 200 },
-  { _id: "3", categoryName: "Premium",    price: 2500, coverPrice: 500 },
-  { _id: "4", categoryName: "Economy",    price: 250,  coverPrice: 0   },
-  { _id: "5", categoryName: "Corporate",  price: 3000, coverPrice: 750 },
+const SAMPLE = [
+  { _id: "1", categoryName: "General",   price: 500,  coverPrice: 0   },
+  { _id: "2", categoryName: "VIP",       price: 1500, coverPrice: 200 },
+  { _id: "3", categoryName: "Premium",   price: 2500, coverPrice: 500 },
+  { _id: "4", categoryName: "Economy",   price: 250,  coverPrice: 0   },
+  { _id: "5", categoryName: "Corporate", price: 3000, coverPrice: 750 },
 ];
 
+const EMPTY_FORM = { categoryName: "", price: "", coverPrice: "" };
+
 export default function App() {
-  const [form, setForm] = useState({ categoryName: "", price: "", coverPrice: "" });
-  const [categories, setCategories] = useState(sampleCategories);
-  const [loading, setLoading] = useState(false);
+  const [form, setForm]             = useState(EMPTY_FORM);
+  const [categories, setCategories] = useState(SAMPLE);
+  const [loading, setLoading]       = useState(false);
+  const [toast, setToast]           = useState(null);
 
-  const handleChange = (e) => {
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 3000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  const handleChange = (e) =>
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
-  };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const handleSubmit = () => {
+    if (!form.categoryName || form.price === "" || form.coverPrice === "") return;
     setLoading(true);
     setTimeout(() => {
-      setCategories((c) => [...c, { ...form, _id: Date.now().toString() }]);
-      setForm({ categoryName: "", price: "", coverPrice: "" });
+      const entry = { ...form, _id: Date.now().toString(), _new: true };
+      setCategories((c) => [entry, ...c]);
+      setForm(EMPTY_FORM);
       setLoading(false);
+      setToast({ type: "success", message: `Category "${entry.categoryName}" added successfully.` });
+      setTimeout(() => {
+        setCategories((c) =>
+          c.map((item) => (item._id === entry._id ? { ...item, _new: false } : item))
+        );
+      }, 1800);
     }, 900);
   };
 
@@ -754,7 +769,8 @@ export default function App() {
       categoryLoading={loading}
       onFormChange={handleChange}
       onSubmit={handleSubmit}
-      onReset={() => setForm({ categoryName: "", price: "", coverPrice: "" })}
+      onReset={() => setForm(EMPTY_FORM)}
+      toast={toast}
     />
   );
 }
