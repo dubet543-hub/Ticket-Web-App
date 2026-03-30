@@ -26,6 +26,7 @@ const styles = `
 
   .sb-aside {
     display: flex; flex-direction: column; height: 100vh;
+    position: sticky; top: 0; align-self: flex-start; flex-shrink: 0;
     background: var(--bg);
     box-shadow: 0 2px 16px rgba(47,94,196,.07), 1px 0 0 var(--border);
     border-right: 1px solid var(--border);
