@@ -6,6 +6,9 @@ function ReportView({
   facilities = [],
   users = [],
   onPrintReport,
+  onSendWhatsApp,
+  onEditAttendee,
+  onDeleteAttendee,
 }) {
   const [searchFacility, setSearchFacility] = useState("");
   const [salesPerson, setSalesPerson] = useState("");
@@ -88,6 +91,14 @@ function ReportView({
     const date = new Date(value);
     return Number.isNaN(date.getTime()) ? "-" : date.toLocaleDateString();
   };
+
+  const formatDateTime = (value) => {
+    if (!value) return "-";
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? "-" : date.toLocaleString();
+  };
+
+  const hasMemberActions = Boolean(onSendWhatsApp || onEditAttendee || onDeleteAttendee);
 
   return (
     <>
@@ -332,12 +343,14 @@ function ReportView({
                   <th>Mobile</th>
                   <th>Gender</th>
                   <th>Date</th>
+                  <th>Last Updated</th>
+                  {hasMemberActions && <th className="report-print-hide">Actions</th>}
                 </tr>
               </thead>
               <tbody>
                 {filteredAttendees.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="py-6 text-center text-slate-500">No report data found.</td>
+                    <td colSpan={hasMemberActions ? 10 : 9} className="py-6 text-center text-slate-500">No report data found.</td>
                   </tr>
                 ) : (
                   filteredAttendees.map((item, index) => (
@@ -350,6 +363,34 @@ function ReportView({
                       <td>{item.mobile || "-"}</td>
                       <td>{item.gender || "-"}</td>
                       <td>{formatDate(item.createdAt)}</td>
+                      <td>{formatDateTime(item.updatedAt)}</td>
+                      {hasMemberActions && (
+                        <td className="report-print-hide">
+                          <div className="flex flex-wrap gap-1.5">
+                            {onEditAttendee && (
+                              <button type="button" className="btn-secondary btn-sm" onClick={() => onEditAttendee(item)}>
+                                Edit
+                              </button>
+                            )}
+                            {onSendWhatsApp && (
+                              <button
+                                type="button"
+                                className="btn-success btn-sm"
+                                onClick={() => onSendWhatsApp(item)}
+                                disabled={!item.mobile}
+                                title={item.mobile ? `Send ticket to ${item.mobile}` : "No mobile number"}
+                              >
+                                Resend WhatsApp
+                              </button>
+                            )}
+                            {onDeleteAttendee && (
+                              <button type="button" className="btn-danger btn-sm" onClick={() => onDeleteAttendee(item._id, item.name)}>
+                                Delete
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   ))
                 )}

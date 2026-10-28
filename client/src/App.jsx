@@ -258,7 +258,9 @@ function App() {
       gender:   attendee.gender   || "",
       age:      attendee.age      || "",
       category: attendee.category?._id || "",
+      sendWhatsApp: false,
     });
+    setActiveMenu("attendees");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -350,13 +352,14 @@ function App() {
     try {
       setAttendeeLoading(true);
       const payload = { ...attendeeForm, age: attendeeForm.age ? Number(attendeeForm.age) : "" };
-      if (editingAttendeeId) {
-        await API.put(`/attendees/${editingAttendeeId}`, payload);
-        alert("Attendee updated successfully");
-      } else {
-        await API.post("/attendees", payload);
-        alert("Attendee added successfully");
-      }
+      const isUpdate = Boolean(editingAttendeeId);
+      const res = isUpdate
+        ? await API.put(`/attendees/${editingAttendeeId}`, payload)
+        : await API.post("/attendees", payload);
+
+      // Open WhatsApp before alert() so the browser still treats it as user-initiated
+      if (attendeeForm.sendWhatsApp) handleSendWhatsApp(res.data, { updated: isUpdate });
+      alert(isUpdate ? "Attendee updated successfully" : "Attendee added successfully");
       resetAttendeeForm();
       await Promise.all([fetchAttendees(), fetchDashboardSummary()]);
     } catch (err) {
@@ -449,8 +452,8 @@ function App() {
   // ── Misc handlers ───────────────────────────────────────────────────────────
   const handlePrintReport = () => window.print();
 
-  const handleSendWhatsApp = (attendee) => {
-    const link = generateWhatsAppLink(attendee);
+  const handleSendWhatsApp = (attendee, options) => {
+    const link = generateWhatsAppLink(attendee, options);
     if (!link) { alert("Mobile number not found for this attendee"); return; }
     window.open(link, "_blank");
   };
