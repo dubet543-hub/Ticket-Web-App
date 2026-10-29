@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import API from "./api";
-import { generateWhatsAppLink } from "./utils/ticketMessage";
+import { generateTicketMessage, generateWhatsAppLink } from "./utils/ticketMessage";
+import { downloadBlob, generateTicketImage, getTicketFileName } from "./utils/ticketImage";
 import Sidebar from "./components/Sidebar";
 import Dashboard from "./components/Dashboard";
 import CategoryForm from "./components/CategoryForm";
@@ -349,13 +350,16 @@ function App() {
     }
     try {
       setAttendeeLoading(true);
-      const payload = { ...attendeeForm, age: attendeeForm.age ? Number(attendeeForm.age) : "" };
+      const { sendWhatsApp, ...form } = attendeeForm;
+      const payload = { ...form, age: form.age ? Number(form.age) : "" };
       if (editingAttendeeId) {
         await API.put(`/attendees/${editingAttendeeId}`, payload);
         alert("Attendee updated successfully");
       } else {
-        await API.post("/attendees", payload);
-        alert("Attendee added successfully");
+        const res = await API.post("/attendees", payload);
+        // Open WhatsApp right away (no alert first, so the popup isn't blocked)
+        if (sendWhatsApp) await handleSendWhatsApp(res.data);
+        else alert("Attendee added successfully");
       }
       resetAttendeeForm();
       await Promise.all([fetchAttendees(), fetchDashboardSummary()]);
@@ -449,10 +453,38 @@ function App() {
   // ── Misc handlers ───────────────────────────────────────────────────────────
   const handlePrintReport = () => window.print();
 
-  const handleSendWhatsApp = (attendee) => {
+  // Manual send: copy the ticket image, then open the member's chat to paste it (Cmd/Ctrl+V)
+  const handleSendWhatsApp = async (attendee) => {
     const link = generateWhatsAppLink(attendee);
     if (!link) { alert("Mobile number not found for this attendee"); return; }
-    window.open(link, "_blank");
+
+    const ticketPromise = generateTicketImage(attendee);
+    const fileName = getTicketFileName(attendee);
+
+    // Phones: share the image straight to WhatsApp via the share sheet
+    if (window.matchMedia("(pointer: coarse)").matches && navigator.canShare) {
+      try {
+        const file = new File([await ticketPromise], fileName, { type: "image/png" });
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], text: generateTicketMessage(attendee) });
+          return;
+        }
+      } catch (err) {
+        if (err?.name === "AbortError") return;
+      }
+    }
+
+    try {
+      await navigator.clipboard.write([new ClipboardItem({ "image/png": ticketPromise })]);
+    } catch (err) {
+      // Clipboard unavailable: download it so it can be attached from Downloads
+      console.error("Copy ticket image:", err);
+      downloadBlob(await ticketPromise, fileName);
+    }
+
+    if (!window.open(link, "_blank")) {
+      alert("Popup blocked. Allow popups for this site, then click WhatsApp again.");
+    }
   };
 
   const handleResendWhatsApp = async (attendeeId) => {

@@ -109,6 +109,7 @@ function AttendeeReport({
                       <button
                         onClick={() => onSendWhatsApp(item)}
                         className="btn-success btn-sm"
+                        title="Copies the ticket image and opens WhatsApp. Paste with Ctrl/Cmd+V."
                       >
                         WhatsApp
                       </button>

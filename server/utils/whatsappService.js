@@ -1,5 +1,50 @@
-// WhatsApp Integration Module
-// Note: You'll need to set up WhatsApp Business API credentials in .env
+// WhatsApp Integration Module (Meta WhatsApp Cloud API)
+// Required .env: WHATSAPP_TOKEN, WHATSAPP_PHONE_NUMBER_ID, WHATSAPP_TEMPLATE_NAME
+// Optional .env: WHATSAPP_TEMPLATE_LANG (default "en"), WHATSAPP_COUNTRY_CODE (default "91"),
+//                WHATSAPP_API_VERSION (default "v23.0")
+
+const getConfig = () => ({
+  token: process.env.WHATSAPP_TOKEN,
+  phoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID,
+  templateName: process.env.WHATSAPP_TEMPLATE_NAME,
+  templateLang: process.env.WHATSAPP_TEMPLATE_LANG || "en",
+  countryCode: process.env.WHATSAPP_COUNTRY_CODE || "91",
+  apiVersion: process.env.WHATSAPP_API_VERSION || "v23.0",
+});
+
+// "98765 43210" -> "919876543210" (Cloud API wants digits only, with country code)
+const formatPhone = (phone, countryCode) => {
+  const digits = String(phone).replace(/\D/g, "");
+  return digits.length === 10 ? `${countryCode}${digits}` : digits;
+};
+
+const graphRequest = async (config, path, options) => {
+  const response = await fetch(
+    `https://graph.facebook.com/${config.apiVersion}/${config.phoneNumberId}/${path}`,
+    {
+      ...options,
+      headers: { Authorization: `Bearer ${config.token}`, ...options.headers },
+    }
+  );
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data?.error?.message || `WhatsApp API error (${response.status})`);
+  }
+  return data;
+};
+
+// Upload the base64 QR data URL as a PNG and return its media id
+const uploadQrImage = async (config, qrImage) => {
+  const base64 = qrImage.replace(/^data:image\/\w+;base64,/, "");
+  const form = new FormData();
+  form.append("messaging_product", "whatsapp");
+  form.append("type", "image/png");
+  form.append("file", new Blob([Buffer.from(base64, "base64")], { type: "image/png" }), "ticket-qr.png");
+
+  const data = await graphRequest(config, "media", { method: "POST", body: form });
+  return data.id;
+};
 
 const sendWhatsAppTicket = async (
   attendeePhone,
@@ -8,43 +53,56 @@ const sendWhatsAppTicket = async (
   qrImage,
   eventName = "Event"
 ) => {
-  try {
-    // This is a template structure. Implement with actual WhatsApp API provider
-    // Popular options: Twilio, MessageBird, WhatsApp Business API, etc.
+  const config = getConfig();
 
-    // Example using Twilio (replace with your actual implementation)
-    const message = {
-      to: attendeePhone,
-      from: process.env.WHATSAPP_FROM_NUMBER, // Format: +country_code_number
-      body: `Hello ${attendeeName},\n\nYour ticket for ${eventName} is confirmed!\n\nRegistration No: ${registrationNo}\n\nPlease show this QR code at the event entry.\n\nThank you!`,
-      mediaUrl: qrImage, // QR code image
+  if (!config.token || !config.phoneNumberId || !config.templateName) {
+    console.warn("WhatsApp not configured: set WHATSAPP_TOKEN, WHATSAPP_PHONE_NUMBER_ID, WHATSAPP_TEMPLATE_NAME");
+    return {
+      success: false,
+      message: "WhatsApp is not configured on the server",
+      status: "not-sent",
     };
+  }
 
-    // TODO: Implement actual API call to WhatsApp provider
-    // Example with Twilio:
-    /*
-    const twilio = require("twilio");
-    const client = twilio(
-      process.env.TWILIO_ACCOUNT_SID,
-      process.env.TWILIO_AUTH_TOKEN
-    );
-    
-    await client.messages.create({
-      from: message.from,
-      to: `whatsapp:${message.to}`,
-      body: message.body,
-      mediaUrl: [message.mediaUrl],
+  try {
+    const mediaId = await uploadQrImage(config, qrImage);
+
+    // Template: Image header + body "Hello {{1}}, ... Registration No: {{2}} ..."
+    const data = await graphRequest(config, "messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        to: formatPhone(attendeePhone, config.countryCode),
+        type: "template",
+        template: {
+          name: config.templateName,
+          language: { code: config.templateLang },
+          components: [
+            {
+              type: "header",
+              parameters: [{ type: "image", image: { id: mediaId } }],
+            },
+            {
+              type: "body",
+              parameters: [
+                { type: "text", text: attendeeName },
+                { type: "text", text: registrationNo },
+              ],
+            },
+          ],
+        },
+      }),
     });
-    */
 
-    console.log("WhatsApp message template prepared:", message);
+    console.log(`WhatsApp ticket sent for ${eventName}:`, data?.messages?.[0]?.id);
     return {
       success: true,
       message: "WhatsApp ticket sent successfully",
-      status: "delivered",
+      status: "sent",
     };
   } catch (error) {
-    console.error("Error sending WhatsApp ticket:", error);
+    console.error("Error sending WhatsApp ticket:", error.message);
     return {
       success: false,
       message: error.message,

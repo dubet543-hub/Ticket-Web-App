@@ -305,7 +305,7 @@ function AttendeeForm({
                     Send Ticket on WhatsApp
                   </label>
                   <p className="af-wa-hint">
-                    Ticket &amp; QR code will be delivered to the mobile number via WhatsApp.
+                    After saving, WhatsApp opens with the message ready. Press Ctrl/Cmd+V to paste the ticket image, then send.
                   </p>
                 </div>
               </div>
