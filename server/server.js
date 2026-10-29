@@ -18,7 +18,18 @@ const app = express();
 connectDB();
 
 // Middleware
-app.use(cors());
+// CLIENT_URL: comma-separated list of allowed origins (e.g. your Vercel URL).
+// If unset, all origins are allowed (local development).
+const allowedOrigins = (process.env.CLIENT_URL || "")
+  .split(",")
+  .map((origin) => origin.trim().replace(/\/$/, ""))
+  .filter(Boolean);
+
+app.use(
+  cors({
+    origin: allowedOrigins.length ? allowedOrigins : true,
+  })
+);
 app.use(express.json());
 
 // Test route

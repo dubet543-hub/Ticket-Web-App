@@ -302,10 +302,13 @@ function AttendeeForm({
                 />
                 <div>
                   <label htmlFor="sendWhatsApp" className="af-wa-label">
-                    Send Ticket on WhatsApp
+                    {editingAttendeeId ? "Send Updated Ticket on WhatsApp" : "Send Ticket on WhatsApp"}
                   </label>
                   <p className="af-wa-hint">
-                    After saving, WhatsApp opens with the message ready. Press Ctrl/Cmd+V to paste the ticket image, then send.
+                    {editingAttendeeId
+                      ? "After saving, WhatsApp opens with the updated ticket details for this member."
+                      : "After saving, WhatsApp opens with the ticket details for this member."}
+                    {" "}Press Ctrl/Cmd+V to paste the ticket image, then send.
                   </p>
                 </div>
               </div>

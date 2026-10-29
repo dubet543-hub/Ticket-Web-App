@@ -174,6 +174,7 @@ router.put("/:id", async (req, res) => {
     attendee.name = name ?? attendee.name;
     attendee.email = email ?? attendee.email;
     attendee.mobile = mobile ?? attendee.mobile;
+    attendee.whatsappNo = attendee.mobile;
     attendee.gender = gender ?? attendee.gender;
     attendee.age = age ?? attendee.age;
 

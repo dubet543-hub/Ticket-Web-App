@@ -259,7 +259,9 @@ function App() {
       gender:   attendee.gender   || "",
       age:      attendee.age      || "",
       category: attendee.category?._id || "",
+      sendWhatsApp: false,
     });
+    setActiveMenu("attendees");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -352,15 +354,14 @@ function App() {
       setAttendeeLoading(true);
       const { sendWhatsApp, ...form } = attendeeForm;
       const payload = { ...form, age: form.age ? Number(form.age) : "" };
-      if (editingAttendeeId) {
-        await API.put(`/attendees/${editingAttendeeId}`, payload);
-        alert("Attendee updated successfully");
-      } else {
-        const res = await API.post("/attendees", payload);
-        // Open WhatsApp right away (no alert first, so the popup isn't blocked)
-        if (sendWhatsApp) await handleSendWhatsApp(res.data);
-        else alert("Attendee added successfully");
-      }
+      const isUpdate = Boolean(editingAttendeeId);
+      const res = isUpdate
+        ? await API.put(`/attendees/${editingAttendeeId}`, payload)
+        : await API.post("/attendees", payload);
+
+      // Open WhatsApp right away (no alert first, so the popup isn't blocked)
+      if (sendWhatsApp) await handleSendWhatsApp(res.data, { updated: isUpdate });
+      else alert(isUpdate ? "Attendee updated successfully" : "Attendee added successfully");
       resetAttendeeForm();
       await Promise.all([fetchAttendees(), fetchDashboardSummary()]);
     } catch (err) {
@@ -454,8 +455,8 @@ function App() {
   const handlePrintReport = () => window.print();
 
   // Manual send: copy the ticket image, then open the member's chat to paste it (Cmd/Ctrl+V)
-  const handleSendWhatsApp = async (attendee) => {
-    const link = generateWhatsAppLink(attendee);
+  const handleSendWhatsApp = async (attendee, options) => {
+    const link = generateWhatsAppLink(attendee, options);
     if (!link) { alert("Mobile number not found for this attendee"); return; }
 
     const ticketPromise = generateTicketImage(attendee);
@@ -466,7 +467,7 @@ function App() {
       try {
         const file = new File([await ticketPromise], fileName, { type: "image/png" });
         if (navigator.canShare({ files: [file] })) {
-          await navigator.share({ files: [file], text: generateTicketMessage(attendee) });
+          await navigator.share({ files: [file], text: generateTicketMessage(attendee, options) });
           return;
         }
       } catch (err) {
