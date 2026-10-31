@@ -805,6 +805,7 @@ function App() {
                     facilities={facilities}
                     users={users}
                     onPrintReport={handlePrintReport}
+                    onDeleteAttendee={handleDeleteAttendee}
                   />
                 )}
 

@@ -302,12 +302,13 @@ function ReportView({
                   <th>Gender</th>
                   <th>Entry By</th>
                   <th>Date</th>
+                  {onDeleteAttendee && <th className="report-print-hide">Actions</th>}
                 </tr>
               </thead>
               <tbody>
                 {filteredAttendees.length === 0 ? (
                   <tr>
-                    <td colSpan={10} className="py-6 text-center text-slate-500">No report data found.</td>
+                    <td colSpan={onDeleteAttendee ? 11 : 10} className="py-6 text-center text-slate-500">No report data found.</td>
                   </tr>
                 ) : (
                   filteredAttendees.map((item, index) => (
@@ -322,6 +323,13 @@ function ReportView({
                       <td>{item.gender || "-"}</td>
                       <td>{item.createdBy?.name || "Centre Point Hotel"}</td>
                       <td>{formatDate(item.createdAt)}</td>
+                      {onDeleteAttendee && (
+                        <td className="report-print-hide">
+                          <button type="button" className="btn-danger btn-sm" onClick={() => onDeleteAttendee(item._id, item.name)}>
+                            Delete
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   ))
                 )}
