@@ -1,12 +1,12 @@
 const express = require("express");
 const crypto = require("crypto");
-const QRCode = require("qrcode");
 
 const router = express.Router();
 
 const Attendee = require("../models/Attendee");
 const Category = require("../models/Category");
 const { sendWhatsAppTicket } = require("../utils/whatsappService");
+const { generateAttendeeQRCode } = require("../utils/qrGenerator");
 
 // Helper: generate registration number
 const generateRegistrationNo = async (categoryName = "") => {
@@ -49,7 +49,10 @@ router.post("/", async (req, res) => {
     const registrationNo = await generateRegistrationNo(foundCategory.categoryName);
     const ticketNo = generateTicketNo();
     const qrToken = crypto.randomUUID();
-    const qrCode = await QRCode.toDataURL(qrToken);
+    const qrCode = await generateAttendeeQRCode(
+      { registrationNo, name, mobile, gender, amount: foundCategory.price, qrToken },
+      foundCategory.categoryName
+    );
 
     const newAttendee = new Attendee({
       registrationNo,
@@ -170,7 +173,7 @@ router.put("/:id", async (req, res) => {
       }
     }
 
-    // Update fields (QR + registration stays SAME 🔒)
+    // Update fields (QR token + registration stay SAME 🔒; QR image is redrawn with the new details)
     attendee.name = name ?? attendee.name;
     attendee.email = email ?? attendee.email;
     attendee.mobile = mobile ?? attendee.mobile;
@@ -183,6 +186,9 @@ router.put("/:id", async (req, res) => {
       attendee.amount = foundCategory.price;
       attendee.coverAmount = foundCategory.coverPrice;
     }
+
+    const currentCategory = foundCategory || (await Category.findById(attendee.category));
+    attendee.qrCode = await generateAttendeeQRCode(attendee, currentCategory?.categoryName);
 
     const updatedAttendee = await attendee.save();
 

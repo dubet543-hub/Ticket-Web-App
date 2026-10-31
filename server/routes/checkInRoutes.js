@@ -3,8 +3,9 @@ const router = express.Router();
 
 const Attendee = require("../models/Attendee");
 const Facility = require("../models/Facility");
+const { extractQRToken } = require("../utils/qrGenerator");
 
-// Scan / check-in by qrToken or registrationNo
+// Scan / check-in by qrToken (bare or inside the full QR payload) or registrationNo
 router.post("/", async (req, res) => {
   try {
     const { scanValue, facility, notes, checkedInBy } = req.body;
@@ -15,8 +16,10 @@ router.post("/", async (req, res) => {
       });
     }
 
+    const lookupValue = extractQRToken(scanValue);
+
     const attendee = await Attendee.findOne({
-      $or: [{ qrToken: scanValue }, { registrationNo: scanValue }],
+      $or: [{ qrToken: lookupValue }, { registrationNo: lookupValue }],
     }).populate("category");
 
     if (!attendee) {
