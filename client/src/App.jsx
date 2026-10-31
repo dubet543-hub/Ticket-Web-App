@@ -665,6 +665,18 @@ function App() {
           to   { opacity: 1; transform: translateY(0); }
         }
         .fade-up { animation: fadeUp 0.3s ease both; }
+
+        /* Print only the page content: no sidebar, nav pills or buttons, full page width */
+        @media print {
+          @page { size: A4 portrait; margin: 10mm; }
+          html, body, #root { height: auto !important; background: #fff !important; }
+          * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .sb-aside, .mobile-nav, .print-btn, .print\\:hidden { display: none !important; }
+          .app-shell { display: block !important; height: auto !important; overflow: visible !important; background: #fff !important; }
+          .app-main { overflow: visible !important; background: #fff !important; }
+          .app-inner { max-width: none !important; padding: 0 !important; }
+          .fade-up { animation: none !important; }
+        }
       `}</style>
 
       {!isAuthenticated ? (

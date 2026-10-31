@@ -250,14 +250,33 @@ export default function Dashboard({ dashboardStats = {}, onPrintReport }) {
           margin: 4px 0;
         }
 
+        .print-only { display: none; }
+
         @media print {
           .print-btn, .dashboard-root { box-shadow: none !important; }
-          .metric-card, .card { break-inside: avoid; }
+          .metric-card, .card { break-inside: avoid; box-shadow: none !important; }
+          .live-dot { display: none !important; }
+          /* The printed page is narrow; keep the desktop columns */
+          .grid-5 { grid-template-columns: repeat(5, 1fr) !important; gap: 8px !important; }
+          .grid-4 { grid-template-columns: repeat(4, 1fr) !important; gap: 8px !important; }
+          .metric-card { padding: 12px !important; }
+          .card { padding: 16px 18px !important; }
+          .print-only {
+            display: flex; justify-content: space-between; gap: 12px;
+            padding-bottom: 8px; border-bottom: 1px solid #d4e4f0;
+            font-family: 'DM Sans', sans-serif; font-size: 11px; color: #475569;
+          }
+          .print-only strong { color: #0f172a; font-size: 12px; }
         }
       `}</style>
 
       <div className="dashboard-root">
         <div style={{ maxWidth: "1380px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "22px" }}>
+
+          <div className="print-only">
+            <span><strong>Centre Point Hotels &amp; Resorts</strong> · Dhamaaka – The Karan Johar Edition · 7 Nov 2026</span>
+            <span>Printed {new Date().toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
+          </div>
 
           {/* ── Hero Header ── */}
           <div className="card">

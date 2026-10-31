@@ -235,6 +235,16 @@ function ReportView({
       </div>
 
       <div className="report-print-area rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="report-print-hide" style={{ display: "flex", justifyContent: "flex-end", marginBottom: "8px" }}>
+          <button type="button" className="btn-primary btn-sm" onClick={onPrintReport}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="6 9 6 2 18 2 18 9" />
+              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+              <rect x="6" y="14" width="12" height="8" />
+            </svg>
+            Print Report
+          </button>
+        </div>
         <h3 className="text-center text-2xl font-semibold text-slate-900">{reportTitle}</h3>
         <p className="mt-2 text-center text-sm text-slate-600">CENTRE POINT HOTELS & RESORTS</p>
 
@@ -408,7 +418,7 @@ function ReportView({
         )}
 
         <button type="button" className="report-print-hide btn-primary mt-5 w-full justify-center" onClick={onPrintReport}>
-          Print
+          Print Report
         </button>
       </div>
     </div>
