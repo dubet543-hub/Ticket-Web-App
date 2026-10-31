@@ -3,6 +3,7 @@ import API from "./api";
 import { generateTicketMessage, generateWhatsAppLink } from "./utils/ticketMessage";
 import { blobToDataURL, downloadBlob, generateTicketImage, getTicketFileName } from "./utils/ticketImage";
 import { describeScanValue } from "./utils/scanValue";
+import { playScanSound } from "./utils/scanSound";
 import Sidebar from "./components/Sidebar";
 import Dashboard from "./components/Dashboard";
 import CategoryForm from "./components/CategoryForm";
@@ -123,6 +124,7 @@ function App() {
   const [attendeeLoading, setAttendeeLoading] = useState(false);
   const [checkInLoading,  setCheckInLoading]  = useState(false);
   const [checkInResult,   setCheckInResult]   = useState(null);
+  const [recentScans,     setRecentScans]     = useState([]);
 
   const [editingAttendeeId, setEditingAttendeeId] = useState(null);
   const [whatsappAutoSend,  setWhatsappAutoSend]  = useState(false);
@@ -407,6 +409,16 @@ function App() {
   const performCheckIn = useCallback(async (rawScanValue) => {
     const scanValue = String(rawScanValue || "").trim();
     if (!scanValue) { alert("Please scan or enter a ticket code"); return; }
+
+    // Session log shown under the scanner (latest first)
+    const logScan = (allowed, message, attendee) => {
+      playScanSound(allowed);
+      setRecentScans(p => [
+        { id: `${Date.now()}-${p.length}`, allowed, message, attendee, label: describeScanValue(scanValue), at: new Date() },
+        ...p,
+      ].slice(0, 10));
+    };
+
     try {
       setCheckInLoading(true);
       setCheckInResult(null);
@@ -419,6 +431,7 @@ function App() {
         checkedInBy: "operator",
       });
       setCheckInResult({ type: "success", message: res.data.message, attendee: res.data.attendee });
+      logScan(true, res.data.message, res.data.attendee);
       // Keep the selected gate for the next scan
       setCheckInForm(p => ({ ...p, scanValue: "" }));
       await Promise.all([fetchAttendees(), fetchDashboardSummary()]);
@@ -428,6 +441,7 @@ function App() {
         message:  err?.response?.data?.message || "Check-in failed",
         attendee: err?.response?.data?.attendee || null,
       });
+      logScan(false, err?.response?.data?.message || "Check-in failed", err?.response?.data?.attendee || null);
       setCheckInForm(p => ({ ...p, scanValue: "" }));
     } finally {
       setCheckInLoading(false);
@@ -748,6 +762,10 @@ function App() {
                     checkInForm={checkInForm}
                     checkInLoading={checkInLoading}
                     checkInResult={checkInResult}
+                    recentScans={recentScans}
+                    onDeleteScan={(id) => setRecentScans(p => p.filter(scan => scan.id !== id))}
+                    onClearScans={() => setRecentScans([])}
+                    onDismissResult={() => setCheckInResult(null)}
                     scanInputRef={scanInputRef}
                     facilities={facilities}
                     onFormChange={handleCheckInChange}

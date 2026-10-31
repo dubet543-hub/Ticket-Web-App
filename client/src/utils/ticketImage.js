@@ -17,13 +17,15 @@ const TEMPLATES = {
 };
 
 // Enclosure/VIP categories get the VIP design; otherwise pick by category name, then gender
-export const getTicketTemplate = (attendee) => {
+export const getEntryType = (attendee) => {
   const category = (attendee?.category?.categoryName || "").toLowerCase();
-  if (/enclosure|enclousre|vip/.test(category)) return TEMPLATES.enclosure;
-  if (/female|women|lady|ladies|girl/.test(category)) return TEMPLATES.female;
-  if (/male|men|gent|boy/.test(category)) return TEMPLATES.male;
-  return attendee?.gender === "Female" ? TEMPLATES.female : TEMPLATES.male;
+  if (/enclosure|enclousre|vip/.test(category)) return "enclosure";
+  if (/female|women|lady|ladies|girl/.test(category)) return "female";
+  if (/male|men|gent|boy/.test(category)) return "male";
+  return attendee?.gender === "Female" ? "female" : "male";
 };
+
+export const getTicketTemplate = (attendee) => TEMPLATES[getEntryType(attendee)];
 
 const roundRect = (ctx, x, y, w, h, r) => {
   ctx.beginPath();
