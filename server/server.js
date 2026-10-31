@@ -11,7 +11,7 @@ const dashboardRoutes = require("./routes/dashboardRoutes");
 const reportRoutes = require("./routes/reportRoutes");
 const facilityRoutes = require("./routes/facilityRoutes");
 const userRoutes = require("./routes/userRoutes");
-const { isWhatsAppConfigured } = require("./utils/whatsappService");
+const { diagnoseWhatsApp, isWhatsAppConfigured } = require("./utils/whatsappService");
 
 const app = express();
 
@@ -51,6 +51,10 @@ app.use("/api/users", userRoutes);
 // Lets the client choose automatic (Cloud API) or manual WhatsApp sending
 app.get("/api/whatsapp/status", (req, res) => {
   res.json({ configured: isWhatsAppConfigured() });
+});
+
+app.get("/api/whatsapp/diagnose", async (req, res) => {
+  res.json(await diagnoseWhatsApp());
 });
 
 // Port

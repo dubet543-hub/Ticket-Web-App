@@ -18,9 +18,9 @@ const formatPhone = (phone, countryCode) => {
   return digits.length === 10 ? `${countryCode}${digits}` : digits;
 };
 
-const graphRequest = async (config, path, options) => {
+const graphRequest = async (config, path, options = {}) => {
   const response = await fetch(
-    `https://graph.facebook.com/${config.apiVersion}/${config.phoneNumberId}/${path}`,
+    `https://graph.facebook.com/${config.apiVersion}/${config.phoneNumberId}${path && !path.startsWith("?") ? `/${path}` : path}`,
     {
       ...options,
       headers: { Authorization: `Bearer ${config.token}`, ...options.headers },
@@ -29,7 +29,15 @@ const graphRequest = async (config, path, options) => {
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data?.error?.message || `WhatsApp API error (${response.status})`);
+    // Keep Meta's code/subcode: the message alone ("no permission") doesn't say why
+    const err = data?.error || {};
+    const codes = [err.code && `code ${err.code}`, err.error_subcode && `subcode ${err.error_subcode}`]
+      .filter(Boolean)
+      .join(", ");
+    const detail = err.error_data?.details ? ` – ${err.error_data.details}` : "";
+    throw new Error(
+      `${err.message || `WhatsApp API error (${response.status})`}${codes ? ` (${codes})` : ""}${detail}`
+    );
   }
   return data;
 };
@@ -72,8 +80,11 @@ const sendWhatsAppTicket = async (
     };
   }
 
+  let step = "Uploading ticket image";
   try {
     const mediaId = await uploadImage(config, ticketImage);
+
+    step = "Sending template message";
 
     // Template: Image header + body "Hello {{1}}, ... Registration No: {{2}} ..."
     const data = await graphRequest(config, "messages", {
@@ -110,16 +121,30 @@ const sendWhatsAppTicket = async (
       status: "sent",
     };
   } catch (error) {
-    console.error("Error sending WhatsApp ticket:", error.message);
+    console.error(`Error sending WhatsApp ticket (${step}):`, error.message);
     return {
       success: false,
-      message: error.message,
+      message: `${step} failed: ${error.message}`,
       status: "failed",
     };
   }
 };
 
+// Read-only check that the token can see the configured phone number
+const diagnoseWhatsApp = async () => {
+  const config = getConfig();
+  if (!isWhatsAppConfigured()) return { configured: false };
+
+  try {
+    const phoneNumber = await graphRequest(config, "?fields=display_phone_number,verified_name,quality_rating,platform_type,status");
+    return { configured: true, phoneNumber: { ok: true, ...phoneNumber } };
+  } catch (error) {
+    return { configured: true, phoneNumber: { ok: false, error: error.message } };
+  }
+};
+
 module.exports = {
+  diagnoseWhatsApp,
   isWhatsAppConfigured,
   sendWhatsAppTicket,
 };
