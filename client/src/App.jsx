@@ -265,6 +265,18 @@ function App() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  const handleDeleteCategory = async (categoryId, categoryName) => {
+    if (!window.confirm(`Are you sure you want to delete the category "${categoryName}"?`)) return;
+    try {
+      await API.delete(`/categories/${categoryId}`);
+      await Promise.all([fetchCategories(), fetchDashboardSummary()]);
+      alert("Category deleted successfully");
+    } catch (err) {
+      console.error("handleDeleteCategory:", err);
+      alert(err?.response?.data?.message || "Failed to delete category");
+    }
+  };
+
   const handleDeleteAttendee = async (attendeeId, attendeeName) => {
     if (!window.confirm(`Are you sure you want to delete ${attendeeName}?`)) return;
     try {
@@ -647,6 +659,7 @@ function App() {
                     onFormChange={handleCategoryChange}
                     onSubmit={handleCategorySubmit}
                     onReset={resetCategoryForm}
+                    onDelete={handleDeleteCategory}
                   />
                 )}
 

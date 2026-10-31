@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=DM+Mono:wght@400;500;700&family=DM+Sans:wght@400;500;600&display=swap');
@@ -452,6 +452,23 @@ const styles = `
 
   .cf-price-zero { color: #b0bec5; }
 
+  .cf-table th.ac, .cf-table td.ac { text-align: center; width: 90px; }
+
+  .cf-delete-btn {
+    width: 32px; height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff1f2;
+    border: 1px solid #fecdd3;
+    border-radius: 9px;
+    color: #e11d48;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.15s;
+  }
+
+  .cf-delete-btn:hover { background: #ffe4e6; transform: translateY(-1px); }
+
   .cf-empty { padding: 48px 16px; text-align: center; }
 
   .cf-empty-icon { width: 40px; height: 40px; margin: 0 auto 12px; opacity: 0.2; }
@@ -486,6 +503,7 @@ function CategoryForm({
   onFormChange = () => {},
   onSubmit = () => {},
   onReset = () => {},
+  onDelete = () => {},
   toast = null,
 }) {
   const [searchTerm, setSearchTerm] = useState("");
@@ -661,6 +679,7 @@ function CategoryForm({
                   <th>Category Name</th>
                   <th className="ar">Ticket Price</th>
                   <th className="ar">Cover Price</th>
+                  <th className="ac">Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -687,11 +706,27 @@ function CategoryForm({
                           ₹{Number(item.coverPrice ?? 0).toLocaleString("en-IN")}
                         </span>
                       </td>
+                      <td className="ac">
+                        <button
+                          type="button"
+                          className="cf-delete-btn"
+                          onClick={() => onDelete(item._id, item.categoryName)}
+                          title={`Delete ${item.categoryName}`}
+                          aria-label={`Delete ${item.categoryName}`}
+                        >
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="3 6 5 6 21 6"/>
+                            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                            <path d="M10 11v6M14 11v6"/>
+                            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                          </svg>
+                        </button>
+                      </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="4">
+                    <td colSpan="5">
                       <div className="cf-empty">
                         <svg className="cf-empty-icon" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="1.5">
                           <rect x="3" y="3" width="18" height="18" rx="3" />
@@ -720,57 +755,4 @@ function CategoryForm({
   );
 }
 
-const SAMPLE = [
-  { _id: "1", categoryName: "General",   price: 500,  coverPrice: 0   },
-  { _id: "2", categoryName: "VIP",       price: 1500, coverPrice: 200 },
-  { _id: "3", categoryName: "Premium",   price: 2500, coverPrice: 500 },
-  { _id: "4", categoryName: "Economy",   price: 250,  coverPrice: 0   },
-  { _id: "5", categoryName: "Corporate", price: 3000, coverPrice: 750 },
-];
-
-const EMPTY_FORM = { categoryName: "", price: "", coverPrice: "" };
-
-export default function App() {
-  const [form, setForm]             = useState(EMPTY_FORM);
-  const [categories, setCategories] = useState(SAMPLE);
-  const [loading, setLoading]       = useState(false);
-  const [toast, setToast]           = useState(null);
-
-  useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast(null), 3000);
-    return () => clearTimeout(t);
-  }, [toast]);
-
-  const handleChange = (e) =>
-    setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
-
-  const handleSubmit = () => {
-    if (!form.categoryName || form.price === "" || form.coverPrice === "") return;
-    setLoading(true);
-    setTimeout(() => {
-      const entry = { ...form, _id: Date.now().toString(), _new: true };
-      setCategories((c) => [entry, ...c]);
-      setForm(EMPTY_FORM);
-      setLoading(false);
-      setToast({ type: "success", message: `Category "${entry.categoryName}" added successfully.` });
-      setTimeout(() => {
-        setCategories((c) =>
-          c.map((item) => (item._id === entry._id ? { ...item, _new: false } : item))
-        );
-      }, 1800);
-    }, 900);
-  };
-
-  return (
-    <CategoryForm
-      categoryForm={form}
-      categories={categories}
-      categoryLoading={loading}
-      onFormChange={handleChange}
-      onSubmit={handleSubmit}
-      onReset={() => setForm(EMPTY_FORM)}
-      toast={toast}
-    />
-  );
-}
+export default CategoryForm;

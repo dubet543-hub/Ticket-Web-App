@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=DM+Mono:wght@400;500;700&family=DM+Sans:wght@400;500;600&display=swap');
@@ -736,57 +736,5 @@ function FacilityForm({
 }
 
 /* ── Sample data ── */
-const SAMPLE = [
-  { _id: "1", facilityName: "Swimming Pool",   description: "Olympic-size heated pool with changing rooms." },
-  { _id: "2", facilityName: "Gym",             description: "Fully equipped fitness center, open 24/7." },
-  { _id: "3", facilityName: "Conference Hall", description: "Seats up to 200 with AV equipment." },
-  { _id: "4", facilityName: "Parking",         description: "" },
-  { _id: "5", facilityName: "Wi-Fi",           description: "High-speed internet across all floors." },
-];
 
-const EMPTY_FORM = { facilityName: "", description: "" };
-
-export default function App() {
-  const [form, setForm]             = useState(EMPTY_FORM);
-  const [facilities, setFacilities] = useState(SAMPLE);
-  const [loading, setLoading]       = useState(false);
-  const [toast, setToast]           = useState(null);
-
-  useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast(null), 3000);
-    return () => clearTimeout(t);
-  }, [toast]);
-
-  const handleChange = (e) =>
-    setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
-
-  const handleSubmit = () => {
-    if (!form.facilityName.trim()) return;
-    setLoading(true);
-    setTimeout(() => {
-      const entry = { ...form, _id: Date.now().toString(), _new: true };
-      setFacilities((f) => [entry, ...f]);
-      setForm(EMPTY_FORM);
-      setLoading(false);
-      setToast({ type: "success", message: `Facility "${entry.facilityName}" added successfully.` });
-      setTimeout(() => {
-        setFacilities((f) =>
-          f.map((item) => (item._id === entry._id ? { ...item, _new: false } : item))
-        );
-      }, 1800);
-    }, 900);
-  };
-
-  return (
-    <FacilityForm
-      facilityForm={form}
-      facilities={facilities}
-      facilityLoading={loading}
-      onFormChange={handleChange}
-      onSubmit={handleSubmit}
-      onReset={() => setForm(EMPTY_FORM)}
-      toast={toast}
-    />
-  );
-}
+export default FacilityForm;
