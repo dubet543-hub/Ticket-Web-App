@@ -242,6 +242,7 @@ router.delete("/:id", async (req, res) => {
 
 // =====================
 // RESEND WHATSAPP TICKET
+// Body (optional): { ticketImage } — the rendered ticket as a data URL; falls back to the QR code
 // =====================
 router.post("/:id/resend-whatsapp", async (req, res) => {
   try {
@@ -259,12 +260,17 @@ router.post("/:id/resend-whatsapp", async (req, res) => {
       });
     }
 
+    const { ticketImage } = req.body || {};
+    const image = typeof ticketImage === "string" && ticketImage.startsWith("data:image/")
+      ? ticketImage
+      : attendee.qrCode;
+
     const whatsappResult = await sendWhatsAppTicket(
       attendee.mobile,
       attendee.name,
       attendee.registrationNo,
-      attendee.qrCode,
-      "Event 2026"
+      image,
+      "Dhamaaka"
     );
 
     attendee.whatsappStatus = whatsappResult.status;
@@ -273,7 +279,8 @@ router.post("/:id/resend-whatsapp", async (req, res) => {
 
     await attendee.save();
 
-    res.status(200).json({
+    res.status(whatsappResult.success ? 200 : 502).json({
+      success: whatsappResult.success,
       message: whatsappResult.message,
       attendee,
       whatsappStatus: attendee.whatsappStatus,

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import API from "./api";
 import { generateTicketMessage, generateWhatsAppLink } from "./utils/ticketMessage";
-import { downloadBlob, generateTicketImage, getTicketFileName } from "./utils/ticketImage";
+import { blobToDataURL, downloadBlob, generateTicketImage, getTicketFileName } from "./utils/ticketImage";
 import Sidebar from "./components/Sidebar";
 import Dashboard from "./components/Dashboard";
 import CategoryForm from "./components/CategoryForm";
@@ -124,6 +124,7 @@ function App() {
   const [checkInResult,   setCheckInResult]   = useState(null);
 
   const [editingAttendeeId, setEditingAttendeeId] = useState(null);
+  const [whatsappAutoSend,  setWhatsappAutoSend]  = useState(false);
 
   const scanInputRef         = useRef(null);
   const scanBufferRef        = useRef("");
@@ -201,6 +202,16 @@ function App() {
     }
   };
 
+  const fetchWhatsAppStatus = async () => {
+    try {
+      const res = await API.get("/whatsapp/status");
+      setWhatsappAutoSend(Boolean(res.data?.configured));
+    } catch (err) {
+      console.error("fetchWhatsAppStatus:", err);
+      setWhatsappAutoSend(false);
+    }
+  };
+
   const refreshAllData = async () => {
     await Promise.all([
       fetchCategories(),
@@ -208,6 +219,7 @@ function App() {
       fetchUsers(),
       fetchAttendees(),
       fetchDashboardSummary(),
+      fetchWhatsAppStatus(),
     ]);
   };
 
@@ -474,10 +486,33 @@ function App() {
   // ── Misc handlers ───────────────────────────────────────────────────────────
   const handlePrintReport = () => window.print();
 
+  // Automatic send: the server delivers the rendered ticket through the WhatsApp Cloud API.
+  // Returns false when it could not send, so the caller can fall back to the manual flow.
+  const sendTicketViaApi = async (attendee) => {
+    try {
+      const blob = await generateTicketImage(attendee, "image/jpeg");
+      await API.post(`/attendees/${attendee._id}/resend-whatsapp`, {
+        ticketImage: await blobToDataURL(blob),
+      });
+      alert(`Ticket sent on WhatsApp to ${attendee.mobile}`);
+      await Promise.all([fetchAttendees(), fetchDashboardSummary()]);
+      return true;
+    } catch (err) {
+      console.error("sendTicketViaApi:", err);
+      alert(
+        `Automatic WhatsApp send failed: ${err?.response?.data?.message || err.message}\n\n` +
+        "Opening WhatsApp so you can send it manually."
+      );
+      return false;
+    }
+  };
+
   // Manual send: copy the ticket image, then open the member's chat to paste it (Cmd/Ctrl+V)
   const handleSendWhatsApp = async (attendee, options) => {
     const link = generateWhatsAppLink(attendee, options);
     if (!link) { alert("Mobile number not found for this attendee"); return; }
+
+    if (whatsappAutoSend && await sendTicketViaApi(attendee)) return;
 
     const ticketPromise = generateTicketImage(attendee);
     const fileName = getTicketFileName(attendee);

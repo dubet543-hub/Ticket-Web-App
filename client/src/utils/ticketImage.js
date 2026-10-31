@@ -44,8 +44,8 @@ const fitText = (ctx, text, weight, size, family, maxWidth) => {
   } while (ctx.measureText(text).width > maxWidth && s > 16);
 };
 
-// Draws the event artwork with a details + QR panel underneath and returns it as a PNG Blob
-export const generateTicketImage = async (attendee) => {
+// Draws the event artwork with a details + QR panel underneath and returns it as an image Blob
+export const generateTicketImage = async (attendee, type = "image/png") => {
   const template = getTicketTemplate(attendee);
   const art = await loadImage(template.src);
 
@@ -128,8 +128,16 @@ export const generateTicketImage = async (attendee) => {
   ctx.font = `500 22px ${sans}`;
   ctx.fillText("Show this QR code at the entry  ·  Valid for one scan only", W / 2, H - 70);
 
-  return new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+  return new Promise((resolve) => canvas.toBlob(resolve, type, 0.9));
 };
+
+export const blobToDataURL = (blob) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
 
 export const downloadBlob = (blob, fileName) => {
   const url = URL.createObjectURL(blob);

@@ -11,6 +11,7 @@ const dashboardRoutes = require("./routes/dashboardRoutes");
 const reportRoutes = require("./routes/reportRoutes");
 const facilityRoutes = require("./routes/facilityRoutes");
 const userRoutes = require("./routes/userRoutes");
+const { isWhatsAppConfigured } = require("./utils/whatsappService");
 
 const app = express();
 
@@ -30,7 +31,8 @@ app.use(
     origin: allowedOrigins.length ? allowedOrigins : true,
   })
 );
-app.use(express.json());
+// Raised limit: the client uploads the rendered ticket image for WhatsApp
+app.use(express.json({ limit: "10mb" }));
 
 // Test route
 app.get("/", (req, res) => {
@@ -45,6 +47,11 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/facilities", facilityRoutes);
 app.use("/api/users", userRoutes);
+
+// Lets the client choose automatic (Cloud API) or manual WhatsApp sending
+app.get("/api/whatsapp/status", (req, res) => {
+  res.json({ configured: isWhatsAppConfigured() });
+});
 
 // Port
 const PORT = process.env.PORT || 5000;

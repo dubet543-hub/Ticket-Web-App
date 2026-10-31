@@ -34,13 +34,21 @@ const graphRequest = async (config, path, options) => {
   return data;
 };
 
-// Upload the base64 QR data URL as a PNG and return its media id
-const uploadQrImage = async (config, qrImage) => {
-  const base64 = qrImage.replace(/^data:image\/\w+;base64,/, "");
+const isWhatsAppConfigured = () => {
+  const config = getConfig();
+  return Boolean(config.token && config.phoneNumberId && config.templateName);
+};
+
+// Upload a base64 image data URL (PNG or JPEG) and return its media id
+const uploadImage = async (config, imageDataUrl) => {
+  const match = imageDataUrl.match(/^data:(image\/(?:png|jpeg));base64,/);
+  const mimeType = match ? match[1] : "image/png";
+  const base64 = imageDataUrl.replace(/^data:image\/\w+;base64,/, "");
+  const fileName = mimeType === "image/jpeg" ? "ticket.jpg" : "ticket.png";
   const form = new FormData();
   form.append("messaging_product", "whatsapp");
-  form.append("type", "image/png");
-  form.append("file", new Blob([Buffer.from(base64, "base64")], { type: "image/png" }), "ticket-qr.png");
+  form.append("type", mimeType);
+  form.append("file", new Blob([Buffer.from(base64, "base64")], { type: mimeType }), fileName);
 
   const data = await graphRequest(config, "media", { method: "POST", body: form });
   return data.id;
@@ -50,12 +58,12 @@ const sendWhatsAppTicket = async (
   attendeePhone,
   attendeeName,
   registrationNo,
-  qrImage,
+  ticketImage,
   eventName = "Event"
 ) => {
   const config = getConfig();
 
-  if (!config.token || !config.phoneNumberId || !config.templateName) {
+  if (!isWhatsAppConfigured()) {
     console.warn("WhatsApp not configured: set WHATSAPP_TOKEN, WHATSAPP_PHONE_NUMBER_ID, WHATSAPP_TEMPLATE_NAME");
     return {
       success: false,
@@ -65,7 +73,7 @@ const sendWhatsAppTicket = async (
   }
 
   try {
-    const mediaId = await uploadQrImage(config, qrImage);
+    const mediaId = await uploadImage(config, ticketImage);
 
     // Template: Image header + body "Hello {{1}}, ... Registration No: {{2}} ..."
     const data = await graphRequest(config, "messages", {
@@ -112,5 +120,6 @@ const sendWhatsAppTicket = async (
 };
 
 module.exports = {
+  isWhatsAppConfigured,
   sendWhatsAppTicket,
 };
