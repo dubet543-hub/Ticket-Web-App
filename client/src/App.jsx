@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import API from "./api";
 import { generateTicketMessage, generateWhatsAppLink } from "./utils/ticketMessage";
 import { blobToDataURL, downloadBlob, generateTicketImage, getTicketFileName } from "./utils/ticketImage";
+import { describeScanValue } from "./utils/scanValue";
 import Sidebar from "./components/Sidebar";
 import Dashboard from "./components/Dashboard";
 import CategoryForm from "./components/CategoryForm";
@@ -409,6 +410,8 @@ function App() {
     try {
       setCheckInLoading(true);
       setCheckInResult(null);
+      // Show "MA0001 · name" instead of the long QR text while checking
+      setCheckInForm(p => ({ ...p, scanValue: describeScanValue(scanValue) }));
       const res = await API.post("/checkin", {
         scanValue,
         facility:    checkInForm.facility,
@@ -416,7 +419,8 @@ function App() {
         checkedInBy: "operator",
       });
       setCheckInResult({ type: "success", message: res.data.message, attendee: res.data.attendee });
-      setCheckInForm({ scanValue: "", facility: "" });
+      // Keep the selected gate for the next scan
+      setCheckInForm(p => ({ ...p, scanValue: "" }));
       await Promise.all([fetchAttendees(), fetchDashboardSummary()]);
     } catch (err) {
       setCheckInResult({
@@ -424,7 +428,7 @@ function App() {
         message:  err?.response?.data?.message || "Check-in failed",
         attendee: err?.response?.data?.attendee || null,
       });
-      setCheckInForm({ scanValue: "", facility: "" });
+      setCheckInForm(p => ({ ...p, scanValue: "" }));
     } finally {
       setCheckInLoading(false);
       setTimeout(() => { if (scanInputRef.current) scanInputRef.current.focus(); }, 100);
