@@ -239,8 +239,8 @@ function ReportView({
         <p className="mt-2 text-center text-sm text-slate-600">CENTRE POINT HOTELS & RESORTS</p>
 
         <div className="mt-5 text-sm text-slate-700">
-          <p>Event Name : New Year Celebration</p>
-          <p>Event Date : 31 Dec, 2023</p>
+          <p>Event Name : Dhamaaka – The Karan Johar Edition</p>
+          <p>Event Date : 7 Nov, 2026 · 08:30 PM onwards</p>
           <p>Venue : Hotel Centre Point, Nagpur</p>
           <p>Report Date : {new Date().toLocaleDateString()}</p>
           <p>Report Category : {reportCategory}</p>

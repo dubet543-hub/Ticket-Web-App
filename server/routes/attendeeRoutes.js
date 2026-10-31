@@ -86,7 +86,7 @@ router.post("/", async (req, res) => {
         name,
         registrationNo,
         qrCode,
-        "Event 2026"
+        "Dhamaaka"
       );
 
       savedAttendee.whatsappStatus = whatsappResult.status;
