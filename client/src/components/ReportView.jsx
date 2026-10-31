@@ -317,7 +317,7 @@ function ReportView({
                       <td>{item.name || "-"}</td>
                       <td>{item.category?.categoryName || "-"}</td>
                       <td>{item.amount || 0}</td>
-                      <td>{item.category?.coverPrice || 0}</td>
+                      <td>{item.coverAmount || 0}</td>
                       <td>{item.mobile || "-"}</td>
                       <td>{item.gender || "-"}</td>
                       <td>{item.createdBy?.name || "Centre Point Hotel"}</td>

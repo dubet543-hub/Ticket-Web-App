@@ -16,6 +16,10 @@ const generateRegistrationNo = async (categoryName = "") => {
   return `${prefix}${String(nextNumber).padStart(4, "0")}`;
 };
 
+// Helper: price from the form, or the fallback when left blank
+const toAmount = (value, fallback = 0) =>
+  value === undefined || value === null || value === "" ? fallback : Number(value) || 0;
+
 // Helper: generate ticket number
 const generateTicketNo = () => {
   const timestamp = Date.now();
@@ -30,7 +34,7 @@ const generateTicketNo = () => {
 // =====================
 router.post("/", async (req, res) => {
   try {
-    const { name, email, mobile, gender, age, category, sendWhatsApp } = req.body;
+    const { name, email, mobile, gender, age, category, amount, coverAmount, sendWhatsApp } = req.body;
 
     if (!name || !mobile || !category) {
       return res.status(400).json({
@@ -48,9 +52,11 @@ router.post("/", async (req, res) => {
 
     const registrationNo = await generateRegistrationNo(foundCategory.categoryName);
     const ticketNo = generateTicketNo();
+    const ticketAmount = toAmount(amount, foundCategory.price);
+    const ticketCoverAmount = toAmount(coverAmount, foundCategory.coverPrice);
     const qrToken = crypto.randomUUID();
     const qrCode = await generateAttendeeQRCode(
-      { registrationNo, name, mobile, gender, amount: foundCategory.price, qrToken },
+      { registrationNo, name, mobile, gender, amount: ticketAmount, qrToken },
       foundCategory.categoryName
     );
 
@@ -63,8 +69,8 @@ router.post("/", async (req, res) => {
       gender,
       age,
       category: foundCategory._id,
-      amount: foundCategory.price,
-      coverAmount: foundCategory.coverPrice,
+      amount: ticketAmount,
+      coverAmount: ticketCoverAmount,
       qrToken,
       qrCode,
       whatsappNo: mobile,
@@ -151,7 +157,7 @@ router.get("/:id", async (req, res) => {
 // =====================
 router.put("/:id", async (req, res) => {
   try {
-    const { name, email, mobile, gender, age, category } = req.body;
+    const { name, email, mobile, gender, age, category, amount, coverAmount } = req.body;
 
     const attendee = await Attendee.findById(req.params.id);
 
@@ -183,9 +189,10 @@ router.put("/:id", async (req, res) => {
 
     if (foundCategory) {
       attendee.category = foundCategory._id;
-      attendee.amount = foundCategory.price;
-      attendee.coverAmount = foundCategory.coverPrice;
     }
+
+    attendee.amount = toAmount(amount, attendee.amount);
+    attendee.coverAmount = toAmount(coverAmount, attendee.coverAmount);
 
     const currentCategory = foundCategory || (await Category.findById(attendee.category));
     attendee.qrCode = await generateAttendeeQRCode(attendee, currentCategory?.categoryName);

@@ -7,14 +7,13 @@ const categorySchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+    // Legacy: prices are now set per attendee (Attendee.amount / coverAmount)
     price: {
       type: Number,
-      required: true,
       default: 0,
     },
     coverPrice: {
       type: Number,
-      required: true,
       default: 0,
     },
   },

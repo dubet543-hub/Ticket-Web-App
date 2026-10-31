@@ -81,7 +81,7 @@ function CheckInScanner({
           </h4>
 
           {checkInResult.attendee && (
-            <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-4">
+            <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
               <div>
                 <p className="text-xs text-slate-500 uppercase tracking-wide font-medium">Registration No</p>
                 <p className="mt-1 font-semibold text-slate-800">
@@ -107,6 +107,20 @@ function CheckInScanner({
                 <p className="text-xs text-slate-500 uppercase tracking-wide font-medium">Category</p>
                 <p className="mt-1 font-semibold text-slate-800">
                   {checkInResult.attendee.category?.categoryName || "-"}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-xs text-slate-500 uppercase tracking-wide font-medium">Ticket Price</p>
+                <p className="mt-1 font-semibold text-slate-800">
+                  ₹{Number(checkInResult.attendee.amount || 0).toLocaleString("en-IN")}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-xs text-slate-500 uppercase tracking-wide font-medium">Cover Price</p>
+                <p className="mt-1 font-semibold text-slate-800">
+                  ₹{Number(checkInResult.attendee.coverAmount || 0).toLocaleString("en-IN")}
                 </p>
               </div>
             </div>

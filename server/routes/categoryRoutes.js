@@ -7,11 +7,11 @@ const Attendee = require("../models/Attendee");
 // Add category
 router.post("/", async (req, res) => {
   try {
-    const { categoryName, price, coverPrice } = req.body;
+    const { categoryName } = req.body;
 
-    if (!categoryName || price === undefined || coverPrice === undefined) {
+    if (!categoryName) {
       return res.status(400).json({
-        message: "categoryName, price, and coverPrice are required",
+        message: "categoryName is required",
       });
     }
 
@@ -25,8 +25,6 @@ router.post("/", async (req, res) => {
 
     const newCategory = new Category({
       categoryName,
-      price,
-      coverPrice,
     });
 
     const savedCategory = await newCategory.save();

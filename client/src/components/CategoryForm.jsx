@@ -134,6 +134,8 @@ const styles = `
     gap: 18px;
   }
 
+  .cf-grid-1 { display: grid; grid-template-columns: minmax(0, 480px); }
+
   @media (max-width: 900px) { .cf-grid-3 { grid-template-columns: 1fr 1fr; } }
   @media (max-width: 560px) { .cf-grid-3 { grid-template-columns: 1fr; } }
 
@@ -443,14 +445,6 @@ const styles = `
     flex-shrink: 0;
   }
 
-  .cf-price {
-    font-family: 'DM Mono', monospace;
-    font-size: 13px;
-    font-weight: 500;
-    color: #0f172a;
-  }
-
-  .cf-price-zero { color: #b0bec5; }
 
   .cf-table th.ac, .cf-table td.ac { text-align: center; width: 90px; }
 
@@ -497,7 +491,7 @@ const styles = `
 `;
 
 function CategoryForm({
-  categoryForm = { categoryName: "", price: "", coverPrice: "" },
+  categoryForm = { categoryName: "" },
   categories = [],
   categoryLoading = false,
   onFormChange = () => {},
@@ -545,7 +539,7 @@ function CategoryForm({
                 </p>
                 <h3 className="cf-title">Add Category</h3>
                 <p className="cf-subtitle">
-                  Define a ticket category with pricing for your event.
+                  Define a ticket category for your event. Prices are set per member.
                 </p>
               </div>
             </div>
@@ -554,7 +548,7 @@ function CategoryForm({
 
               <div>
                 <p className="cf-section-title">Category Details</p>
-                <div className="cf-grid-3">
+                <div className="cf-grid-1">
 
                   <div className="cf-field">
                     <label className="cf-label">
@@ -570,44 +564,6 @@ function CategoryForm({
                       autoComplete="off"
                       required
                     />
-                  </div>
-
-                  <div className="cf-field">
-                    <label className="cf-label">
-                      Ticket Price <span className="cf-required">*</span>
-                    </label>
-                    <div className="cf-input-wrap">
-                      <span className="cf-prefix">₹</span>
-                      <input
-                        type="number"
-                        name="price"
-                        value={categoryForm.price}
-                        onChange={onFormChange}
-                        placeholder="0"
-                        className="cf-input has-prefix"
-                        min="0"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="cf-field">
-                    <label className="cf-label">
-                      Cover Price <span className="cf-required">*</span>
-                    </label>
-                    <div className="cf-input-wrap">
-                      <span className="cf-prefix">₹</span>
-                      <input
-                        type="number"
-                        name="coverPrice"
-                        value={categoryForm.coverPrice}
-                        onChange={onFormChange}
-                        placeholder="0"
-                        className="cf-input has-prefix"
-                        min="0"
-                        required
-                      />
-                    </div>
                   </div>
 
                 </div>
@@ -677,8 +633,6 @@ function CategoryForm({
                 <tr>
                   <th>#</th>
                   <th>Category Name</th>
-                  <th className="ar">Ticket Price</th>
-                  <th className="ar">Cover Price</th>
                   <th className="ac">Action</th>
                 </tr>
               </thead>
@@ -694,16 +648,6 @@ function CategoryForm({
                         <span className="cf-cat-pill">
                           <span className="cf-cat-dot" />
                           {item.categoryName}
-                        </span>
-                      </td>
-                      <td className="ar">
-                        <span className={`cf-price ${!item.price || Number(item.price) === 0 ? "cf-price-zero" : ""}`}>
-                          ₹{Number(item.price ?? 0).toLocaleString("en-IN")}
-                        </span>
-                      </td>
-                      <td className="ar">
-                        <span className={`cf-price ${!item.coverPrice || Number(item.coverPrice) === 0 ? "cf-price-zero" : ""}`}>
-                          ₹{Number(item.coverPrice ?? 0).toLocaleString("en-IN")}
                         </span>
                       </td>
                       <td className="ac">
@@ -726,7 +670,7 @@ function CategoryForm({
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="5">
+                    <td colSpan="3">
                       <div className="cf-empty">
                         <svg className="cf-empty-icon" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="1.5">
                           <rect x="3" y="3" width="18" height="18" rx="3" />

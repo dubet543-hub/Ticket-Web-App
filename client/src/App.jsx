@@ -79,7 +79,7 @@ function App() {
 
   // ── Form state ──────────────────────────────────────────────────────────────
   const [categoryForm, setCategoryForm] = useState({
-    categoryName: "", price: "", coverPrice: "",
+    categoryName: "",
   });
 
   const [facilityForm, setFacilityForm] = useState({
@@ -91,7 +91,7 @@ function App() {
   });
 
   const [attendeeForm, setAttendeeForm] = useState({
-    name: "", email: "", mobile: "", gender: "", age: "", category: "", sendWhatsApp: false,
+    name: "", email: "", mobile: "", gender: "", age: "", category: "", amount: "", coverAmount: "", sendWhatsApp: false,
   });
 
   const [checkInForm, setCheckInForm] = useState({
@@ -241,11 +241,11 @@ function App() {
   };
 
   // ── Reset helpers ───────────────────────────────────────────────────────────
-  const resetCategoryForm = () => setCategoryForm({ categoryName: "", price: "", coverPrice: "" });
+  const resetCategoryForm = () => setCategoryForm({ categoryName: "" });
   const resetFacilityForm = () => setFacilityForm({ facilityName: "", description: "" });
 
   const resetAttendeeForm = () => {
-    setAttendeeForm({ name: "", email: "", mobile: "", gender: "", age: "", category: "", sendWhatsApp: false });
+    setAttendeeForm({ name: "", email: "", mobile: "", gender: "", age: "", category: "", amount: "", coverAmount: "", sendWhatsApp: false });
     setEditingAttendeeId(null);
   };
 
@@ -259,6 +259,8 @@ function App() {
       gender:   attendee.gender   || "",
       age:      attendee.age      || "",
       category: attendee.category?._id || "",
+      amount:      attendee.amount      ?? "",
+      coverAmount: attendee.coverAmount ?? "",
       sendWhatsApp: false,
     });
     setActiveMenu("attendees");
@@ -293,15 +295,13 @@ function App() {
   // ── Submit handlers ─────────────────────────────────────────────────────────
   const handleCategorySubmit = async (e) => {
     e.preventDefault();
-    if (!categoryForm.categoryName || !categoryForm.price || !categoryForm.coverPrice) {
-      alert("Please fill all category fields"); return;
+    if (!categoryForm.categoryName.trim()) {
+      alert("Please enter a category name"); return;
     }
     try {
       setCategoryLoading(true);
       await API.post("/categories", {
-        categoryName: categoryForm.categoryName,
-        price:        Number(categoryForm.price),
-        coverPrice:   Number(categoryForm.coverPrice),
+        categoryName: categoryForm.categoryName.trim(),
       });
       resetCategoryForm();
       await Promise.all([fetchCategories(), fetchDashboardSummary()]);
@@ -362,10 +362,18 @@ function App() {
     if (!attendeeForm.name || !attendeeForm.mobile || !attendeeForm.category) {
       alert("Name, mobile, and category are required"); return;
     }
+    if (attendeeForm.amount === "" || attendeeForm.coverAmount === "") {
+      alert("Ticket price and cover price are required"); return;
+    }
     try {
       setAttendeeLoading(true);
       const { sendWhatsApp, ...form } = attendeeForm;
-      const payload = { ...form, age: form.age ? Number(form.age) : "" };
+      const payload = {
+        ...form,
+        age:         form.age ? Number(form.age) : "",
+        amount:      Number(form.amount),
+        coverAmount: Number(form.coverAmount),
+      };
       const isUpdate = Boolean(editingAttendeeId);
       const res = isUpdate
         ? await API.put(`/attendees/${editingAttendeeId}`, payload)

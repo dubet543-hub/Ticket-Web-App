@@ -120,6 +120,16 @@ function AttendeeForm({
         .af-input:hover:not(:focus), .af-select:hover:not(:focus) {
           border-color: #b8d0e4; background: #fff;
         }
+        .af-input-wrap { position: relative; }
+        .af-prefix {
+          position: absolute; left: 13px; top: 50%; transform: translateY(-50%);
+          font-size: 13px; font-weight: 700; color: #94a3b8;
+          font-family: 'DM Mono', monospace; pointer-events: none; user-select: none;
+        }
+        .af-input.has-prefix { padding-left: 28px; font-family: 'DM Mono', monospace; font-size: 13px; -moz-appearance: textfield; }
+        .af-input.has-prefix::-webkit-outer-spin-button,
+        .af-input.has-prefix::-webkit-inner-spin-button { -webkit-appearance: none; }
+
         .af-select-wrap { position: relative; }
         .af-select-wrap::after {
           content: ''; pointer-events: none; position: absolute;
@@ -285,6 +295,41 @@ function AttendeeForm({
                           <option key={item._id} value={item._id}>{item.categoryName}</option>
                         ))}
                       </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="af-divider" />
+
+              {/* ── Pricing ── */}
+              <div>
+                <p className="af-section-title">Pricing</p>
+                <div className="af-grid-3">
+                  <div className="af-field">
+                    <label className="af-label">
+                      Ticket Price <span className="af-required">*</span>
+                    </label>
+                    <div className="af-input-wrap">
+                      <span className="af-prefix">₹</span>
+                      <input
+                        type="number" name="amount"
+                        value={attendeeForm.amount} onChange={onFormChange}
+                        placeholder="0" className="af-input has-prefix" min="0" required
+                      />
+                    </div>
+                  </div>
+                  <div className="af-field">
+                    <label className="af-label">
+                      Cover Price <span className="af-required">*</span>
+                    </label>
+                    <div className="af-input-wrap">
+                      <span className="af-prefix">₹</span>
+                      <input
+                        type="number" name="coverAmount"
+                        value={attendeeForm.coverAmount} onChange={onFormChange}
+                        placeholder="0" className="af-input has-prefix" min="0" required
+                      />
                     </div>
                   </div>
                 </div>
