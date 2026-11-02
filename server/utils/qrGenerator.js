@@ -42,6 +42,20 @@ const buildQRPayload = (attendee, categoryName = "") => {
   ].join("|");
 };
 
+// Prefix for registration numbers: CPD0001, CPD0002, ...
+// Override with the REGISTRATION_PREFIX env var for a different event.
+const REGISTRATION_PREFIX = (process.env.REGISTRATION_PREFIX || "CPD").toUpperCase();
+
+// Cleans up a typed registration number for manual check-in:
+// "cpd0001", "CPD 0001", "CPD-1" -> "CPD0001"; a bare number like "1" or "0001" -> "CPD0001"
+const normalizeRegistrationNo = (value = "") => {
+  const compact = String(value).trim().toUpperCase().replace(/[\s-]+/g, "");
+  const match = compact.match(/^([A-Z]*)0*(\d+)$/);
+  if (!match) return compact;
+  const [, letters, digits] = match;
+  return `${letters || REGISTRATION_PREFIX}${digits.padStart(4, "0")}`;
+};
+
 // Accepts a full QR payload or a bare token/registration number and returns the value to look up
 const extractQRToken = (scanValue = "") => {
   const match = String(scanValue).match(/TKN:([A-Za-z0-9-]+)/);
@@ -77,6 +91,8 @@ module.exports = {
   getEntryType,
   buildQRPayload,
   extractQRToken,
+  REGISTRATION_PREFIX,
+  normalizeRegistrationNo,
   generateAttendeeQRCode,
   generateRegistrationNo,
   generateTicketNo,

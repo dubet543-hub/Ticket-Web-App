@@ -493,7 +493,7 @@ function CheckInScanner({
             <p className="ci-hint">
               {checkInLoading
                 ? "Checking ticket…"
-                : <>Ready to scan. Typed codes are submitted with <kbd>Enter</kbd>.</>}
+                : <>Ready to scan. Scanner not working? Type the registration number (e.g. <kbd>CPD0001</kbd> or just <kbd>1</kbd>) and press <kbd>Enter</kbd>.</>}
             </p>
           </div>
         </div>

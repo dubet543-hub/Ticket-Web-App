@@ -3,9 +3,9 @@ const router = express.Router();
 
 const Attendee = require("../models/Attendee");
 const Facility = require("../models/Facility");
-const { extractQRToken } = require("../utils/qrGenerator");
+const { extractQRToken, normalizeRegistrationNo } = require("../utils/qrGenerator");
 
-// Scan / check-in by qrToken (bare or inside the full QR payload) or registrationNo
+// Scan / check-in by qrToken (bare or inside the full QR payload) or a typed registrationNo
 router.post("/", async (req, res) => {
   try {
     const { scanValue, facility, notes, checkedInBy } = req.body;
@@ -17,15 +17,18 @@ router.post("/", async (req, res) => {
     }
 
     const lookupValue = extractQRToken(scanValue);
+    const registrationNo = normalizeRegistrationNo(lookupValue);
+    const isQrScan = String(scanValue).includes("TKN:");
 
     const attendee = await Attendee.findOne({
-      $or: [{ qrToken: lookupValue }, { registrationNo: lookupValue }],
+      $or: [{ qrToken: lookupValue }, { registrationNo }],
     }).populate("category");
 
     if (!attendee) {
       return res.status(404).json({
         success: false,
-        message: "Invalid ticket",
+        // For typed numbers, show what was searched so staff can spot a typo
+        message: isQrScan || registrationNo.length > 12 ? "Invalid ticket" : `No ticket found for ${registrationNo}`,
       });
     }
 
