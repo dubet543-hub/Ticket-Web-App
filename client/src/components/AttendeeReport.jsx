@@ -79,7 +79,7 @@ function AttendeeReport({
               attendees.map((item) => (
                 <tr key={item._id}>
                   <td style={{fontWeight: '600'}}>{item.registrationNo}</td>
-                  <td>{item.name}</td>
+                  <td>{item.name?.toUpperCase()}</td>
                   <td>{item.mobile}</td>
                   <td>{item.category?.categoryName || "-"}</td>
                   <td style={{fontWeight: '500'}}>₹{item.amount || 0}</td>

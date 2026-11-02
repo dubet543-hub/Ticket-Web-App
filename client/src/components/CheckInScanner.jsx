@@ -368,7 +368,7 @@ function CheckInResult({ result, onDismiss }) {
       {attendee && (
         <>
           <div className="ci-person">
-            <div className="ci-person-name">{attendee.name || "Guest"}</div>
+            <div className="ci-person-name">{attendee.name?.toUpperCase() || "GUEST"}</div>
             <span className={`ci-pill ${entryType}`}>{ENTRY_LABELS[entryType]}</span>
           </div>
 
@@ -523,7 +523,7 @@ function CheckInScanner({
                   <li key={scan.id} className="ci-recent-item">
                     <span className="ci-recent-time">{formatTime(scan.at)}</span>
                     <span className="ci-recent-who">
-                      {scan.attendee?.name || scan.label}
+                      {scan.attendee?.name?.toUpperCase() || scan.label}
                       {scan.attendee?.registrationNo && <span>{scan.attendee.registrationNo}</span>}
                     </span>
                     <span className={`ci-tag ${kind}`}>{RESULT_TEXT[kind]}</span>

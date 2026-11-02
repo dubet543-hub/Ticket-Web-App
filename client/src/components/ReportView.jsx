@@ -283,7 +283,7 @@ function ReportView({
                       <td>{index + 1}</td>
                       <td>{item.registrationNo || "-"}</td>
                       <td>{item.category?.categoryName || "-"}</td>
-                      <td>{item.name || "-"}</td>
+                      <td>{item.name?.toUpperCase() || "-"}</td>
                       <td>-</td>
                       <td>-</td>
                       <td>{formatDate(item.checkedInAt)}</td>
@@ -325,7 +325,7 @@ function ReportView({
                     <tr key={item._id}>
                       <td>{index + 1}</td>
                       <td>{item.registrationNo || "-"}</td>
-                      <td>{item.name || "-"}</td>
+                      <td>{item.name?.toUpperCase() || "-"}</td>
                       <td>{item.category?.categoryName || "-"}</td>
                       <td>{item.amount || 0}</td>
                       <td>{item.coverAmount || 0}</td>
@@ -375,7 +375,7 @@ function ReportView({
                     <tr key={item._id}>
                       <td>{index + 1}</td>
                       <td>{item.registrationNo || "-"}</td>
-                      <td>{item.name || "-"}</td>
+                      <td>{item.name?.toUpperCase() || "-"}</td>
                       <td>{item.category?.categoryName || "-"}</td>
                       <td>{item.email || "-"}</td>
                       <td>{item.mobile || "-"}</td>
