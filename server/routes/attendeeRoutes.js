@@ -8,12 +8,20 @@ const Category = require("../models/Category");
 const { sendWhatsAppTicket } = require("../utils/whatsappService");
 const { generateAttendeeQRCode } = require("../utils/qrGenerator");
 
-// Helper: generate registration number
-const generateRegistrationNo = async (categoryName = "") => {
-  const count = await Attendee.countDocuments();
-  const nextNumber = count + 1;
-  const prefix = categoryName.substring(0, 2).toUpperCase() || "ATT";
-  return `${prefix}${String(nextNumber).padStart(4, "0")}`;
+// Event prefix for registration numbers: DTKJE0001, DTKJE0002, ...
+// (Dhamaaka – The Karan Johar Edition). Override with REGISTRATION_PREFIX for a new event.
+const REGISTRATION_PREFIX = (process.env.REGISTRATION_PREFIX || "DTKJE").toUpperCase();
+
+// Helper: next registration number after the highest one in use
+// (not a count, so deleted members never cause a repeated number)
+const generateRegistrationNo = async () => {
+  const pattern = new RegExp(`^${REGISTRATION_PREFIX}(\\d+)$`);
+  const existing = await Attendee.find({ registrationNo: pattern }, { registrationNo: 1 }).lean();
+  const highest = existing.reduce(
+    (max, { registrationNo }) => Math.max(max, Number(registrationNo.match(pattern)[1])),
+    0
+  );
+  return `${REGISTRATION_PREFIX}${String(highest + 1).padStart(4, "0")}`;
 };
 
 // Helper: price from the form, or the fallback when left blank
@@ -50,7 +58,7 @@ router.post("/", async (req, res) => {
       });
     }
 
-    const registrationNo = await generateRegistrationNo(foundCategory.categoryName);
+    let registrationNo = await generateRegistrationNo();
     const ticketNo = generateTicketNo();
     const ticketAmount = toAmount(amount, foundCategory.price);
     const ticketCoverAmount = toAmount(coverAmount, foundCategory.coverPrice);
@@ -77,7 +85,22 @@ router.post("/", async (req, res) => {
       whatsappStatus: "pending",
     });
 
-    const savedAttendee = await newAttendee.save();
+    // Two members saved at the same moment can get the same number; retry with the next one
+    let savedAttendee;
+    for (let attempt = 1; ; attempt++) {
+      try {
+        savedAttendee = await newAttendee.save();
+        break;
+      } catch (error) {
+        if (error.code !== 11000 || !error.keyPattern?.registrationNo || attempt >= 5) throw error;
+        registrationNo = await generateRegistrationNo();
+        newAttendee.registrationNo = registrationNo;
+        newAttendee.qrCode = await generateAttendeeQRCode(
+          { registrationNo, name, mobile, gender, amount: ticketAmount, qrToken },
+          foundCategory.categoryName
+        );
+      }
+    }
 
     // Send WhatsApp ticket if requested
     if (sendWhatsApp && mobile) {

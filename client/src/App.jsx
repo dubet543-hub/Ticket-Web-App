@@ -422,7 +422,7 @@ function App() {
     try {
       setCheckInLoading(true);
       setCheckInResult(null);
-      // Show "MA0001 · name" instead of the long QR text while checking
+      // Show "DTKJE0001 · name" instead of the long QR text while checking
       setCheckInForm(p => ({ ...p, scanValue: describeScanValue(scanValue) }));
       const res = await API.post("/checkin", {
         scanValue,
