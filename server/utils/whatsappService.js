@@ -132,17 +132,79 @@ const sendWhatsAppTicket = async (
   }
 };
 
-// Read-only check that the token can see the configured phone number
+// Read-only health check of the WhatsApp setup (no messages are sent).
+// Each section reports { ok: false, error } on its own, so one failing call doesn't hide the rest.
 const diagnoseWhatsApp = async () => {
   const config = getConfig();
   if (!isWhatsAppConfigured()) return { configured: false };
 
-  try {
-    const phoneNumber = await graphRequest(config, "?fields=display_phone_number,verified_name,quality_rating,platform_type,status");
-    return { configured: true, phoneNumber: { ok: true, ...phoneNumber } };
-  } catch (error) {
-    return { configured: true, phoneNumber: { ok: false, error: error.message } };
+  const graphGet = async (path) => {
+    const response = await fetch(`https://graph.facebook.com/${config.apiVersion}/${path}`, {
+      headers: { Authorization: `Bearer ${config.token}` },
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      const err = data?.error || {};
+      throw new Error(`${err.message || response.status}${err.code ? ` (code ${err.code})` : ""}`);
+    }
+    return data;
+  };
+  const attempt = async (fn) => {
+    try {
+      return { ok: true, ...(await fn()) };
+    } catch (error) {
+      return { ok: false, error: error.message };
+    }
+  };
+
+  const result = { configured: true, templateName: config.templateName };
+
+  result.phoneNumber = await attempt(() =>
+    graphGet(
+      `${config.phoneNumberId}?fields=display_phone_number,verified_name,quality_rating,platform_type,status,` +
+        "name_status,code_verification_status,messaging_limit_tier,account_mode,health_status"
+    )
+  );
+
+  // The WhatsApp Business Account(s) this token can act on
+  const tokenInfo = await attempt(() =>
+    graphGet(`debug_token?input_token=${encodeURIComponent(config.token)}`)
+  );
+  const wabaIds = tokenInfo.ok
+    ? [
+        ...new Set(
+          (tokenInfo.data?.granular_scopes || [])
+            .filter((scope) => scope.scope === "whatsapp_business_messaging")
+            .flatMap((scope) => scope.target_ids || [])
+        ),
+      ]
+    : [];
+  if (!tokenInfo.ok) result.tokenInfo = tokenInfo;
+
+  result.accounts = [];
+  for (const wabaId of wabaIds) {
+    const [account, subscribedApps, templates, phoneNumbers] = await Promise.all([
+      attempt(() => graphGet(`${wabaId}?fields=name,currency,account_review_status,health_status`)),
+      attempt(() => graphGet(`${wabaId}/subscribed_apps`)),
+      attempt(() =>
+        graphGet(`${wabaId}/message_templates?fields=name,status,category,language,quality_score,rejected_reason&limit=100`)
+      ),
+      attempt(() => graphGet(`${wabaId}/phone_numbers?fields=id,display_phone_number`)),
+    ]);
+    result.accounts.push({
+      wabaId,
+      hasConfiguredNumber: phoneNumbers.ok ? phoneNumbers.data.some((n) => n.id === config.phoneNumberId) : null,
+      account,
+      subscribedApps: subscribedApps.ok
+        ? subscribedApps.data.map((app) => app.whatsapp_business_api_data?.name || app.whatsapp_business_api_data?.id)
+        : subscribedApps,
+      templates: templates.ok
+        ? templates.data.filter((t) => ["event_ticket", "event_ticket_tc", config.templateName].includes(t.name))
+        : templates,
+    });
   }
+
+  return result;
 };
 
 module.exports = {
