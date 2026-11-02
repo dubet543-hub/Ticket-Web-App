@@ -11,7 +11,7 @@ const dashboardRoutes = require("./routes/dashboardRoutes");
 const reportRoutes = require("./routes/reportRoutes");
 const facilityRoutes = require("./routes/facilityRoutes");
 const userRoutes = require("./routes/userRoutes");
-const { diagnoseWhatsApp, isWhatsAppConfigured } = require("./utils/whatsappService");
+const { diagnoseWhatsApp, ensureWebhookSubscription, isWhatsAppConfigured } = require("./utils/whatsappService");
 const whatsappWebhookRoutes = require("./routes/whatsappWebhookRoutes");
 
 const app = express();
@@ -65,4 +65,5 @@ const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  ensureWebhookSubscription();
 });

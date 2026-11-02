@@ -210,8 +210,36 @@ const diagnoseWhatsApp = async () => {
   return result;
 };
 
+// Links this app to the WhatsApp Business Account so Meta sends delivery webhooks
+// (sent / delivered / read / failed). Idempotent; runs at server start.
+const ensureWebhookSubscription = async () => {
+  const config = getConfig();
+  if (!isWhatsAppConfigured()) return;
+
+  try {
+    const phone = await graphRequest(config, "?fields=health_status");
+    const entities = phone.health_status?.entities || [];
+    const wabaId = entities.find((entity) => entity.entity_type === "WABA")?.id;
+    const appId = entities.find((entity) => entity.entity_type === "APP")?.id;
+    if (!wabaId) return console.warn("WhatsApp webhook subscription: WABA id not found");
+
+    const url = `https://graph.facebook.com/${config.apiVersion}/${wabaId}/subscribed_apps`;
+    const headers = { Authorization: `Bearer ${config.token}` };
+    const current = await (await fetch(url, { headers })).json();
+    if ((current.data || []).some((app) => app.whatsapp_business_api_data?.id === appId)) return;
+
+    const response = await fetch(url, { method: "POST", headers });
+    const data = await response.json();
+    if (!response.ok || !data.success) throw new Error(data?.error?.message || `HTTP ${response.status}`);
+    console.log(`WhatsApp webhook subscription: app ${appId} subscribed to WABA ${wabaId}`);
+  } catch (error) {
+    console.error("WhatsApp webhook subscription failed:", error.message);
+  }
+};
+
 module.exports = {
   diagnoseWhatsApp,
+  ensureWebhookSubscription,
   isWhatsAppConfigured,
   sendWhatsAppTicket,
 };
