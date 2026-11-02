@@ -8,9 +8,9 @@ const Category = require("../models/Category");
 const { sendWhatsAppTicket } = require("../utils/whatsappService");
 const { generateAttendeeQRCode } = require("../utils/qrGenerator");
 
-// Prefix for registration numbers: CP0001, CP0002, ... (Centre Point).
+// Prefix for registration numbers: CPD0001, CPD0002, ...
 // Override with the REGISTRATION_PREFIX env var for a different event.
-const REGISTRATION_PREFIX = (process.env.REGISTRATION_PREFIX || "CP").toUpperCase();
+const REGISTRATION_PREFIX = (process.env.REGISTRATION_PREFIX || "CPD").toUpperCase();
 
 // Helper: next registration number after the highest one in use
 // (not a count, so deleted members never cause a repeated number)

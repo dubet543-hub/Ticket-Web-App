@@ -1,11 +1,11 @@
-// Ticket QR text looks like "DHAMAAKA|REG:CP0001|NAME:tushar|...|TKN:<token>".
+// Ticket QR text looks like "DHAMAAKA|REG:CPD0001|NAME:tushar|...|TKN:<token>".
 // Some hardware scanners type "|" as "I", so each field allows either separator.
 const readField = (raw, key, nextKey) => {
   const match = raw.match(new RegExp(`${key}:(.*?)\\|?I?${nextKey}:`));
   return match ? match[1].trim() : "";
 };
 
-// Short label shown in the scan box instead of the full QR text, e.g. "CP0001 · tushar"
+// Short label shown in the scan box instead of the full QR text, e.g. "CPD0001 · tushar"
 export const describeScanValue = (raw = "") => {
   if (!raw.includes("TKN:")) return raw;
   const regNo = readField(raw, "REG", "NAME");
