@@ -170,15 +170,18 @@ const diagnoseWhatsApp = async () => {
   const tokenInfo = await attempt(() =>
     graphGet(`debug_token?input_token=${encodeURIComponent(config.token)}`)
   );
-  const wabaIds = tokenInfo.ok
-    ? [
-        ...new Set(
-          (tokenInfo.data?.granular_scopes || [])
-            .filter((scope) => scope.scope === "whatsapp_business_messaging")
-            .flatMap((scope) => scope.target_ids || [])
-        ),
-      ]
-    : [];
+  // Token scopes list account ids only when limited to specific accounts; the number's
+  // health report always names its WABA
+  const wabaIds = [
+    ...new Set([
+      ...(tokenInfo.data?.granular_scopes || [])
+        .filter((scope) => scope.scope === "whatsapp_business_messaging")
+        .flatMap((scope) => scope.target_ids || []),
+      ...(result.phoneNumber.health_status?.entities || [])
+        .filter((entity) => entity.entity_type === "WABA")
+        .map((entity) => entity.id),
+    ]),
+  ];
   if (!tokenInfo.ok) result.tokenInfo = tokenInfo;
 
   result.accounts = [];
