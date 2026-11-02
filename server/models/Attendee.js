@@ -11,6 +11,7 @@ const attendeeSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
+      uppercase: true, // printed on the ticket in capitals
     },
 
     email: {

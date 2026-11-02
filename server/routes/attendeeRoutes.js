@@ -38,7 +38,9 @@ const generateTicketNo = () => {
 // =====================
 router.post("/", async (req, res) => {
   try {
-    const { name, email, mobile, gender, age, category, amount, coverAmount, sendWhatsApp } = req.body;
+    const { name: rawName, email, mobile, gender, age, category, amount, coverAmount, sendWhatsApp } = req.body;
+    // Names are stored in capitals (as printed on the ticket and in the QR)
+    const name = String(rawName || "").trim().toUpperCase();
 
     if (!name || !mobile || !category) {
       return res.status(400).json({

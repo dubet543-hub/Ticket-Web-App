@@ -252,7 +252,9 @@ function App() {
 
   const handleAttendeeChange  = (e) => {
     const { name, value, type, checked } = e.target;
-    setAttendeeForm(p => ({ ...p, [name]: type === "checkbox" ? checked : value }));
+    // Member names are stored in capitals (as printed on the ticket)
+    const nextValue = type === "checkbox" ? checked : name === "name" ? value.toUpperCase() : value;
+    setAttendeeForm(p => ({ ...p, [name]: nextValue }));
   };
 
   // ── Reset helpers ───────────────────────────────────────────────────────────
