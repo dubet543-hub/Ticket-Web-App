@@ -114,11 +114,13 @@ const sendWhatsAppTicket = async (
       }),
     });
 
-    console.log(`WhatsApp ticket sent for ${eventName}:`, data?.messages?.[0]?.id);
+    const messageId = data?.messages?.[0]?.id;
+    console.log(`WhatsApp ticket sent for ${eventName}:`, messageId);
     return {
       success: true,
       message: "WhatsApp ticket sent successfully",
       status: "sent",
+      messageId,
     };
   } catch (error) {
     console.error(`Error sending WhatsApp ticket (${step}):`, error.message);

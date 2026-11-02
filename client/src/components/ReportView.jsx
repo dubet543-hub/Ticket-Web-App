@@ -1,5 +1,14 @@
 import { useMemo, useState } from "react";
 
+// Delivery status reported by Meta for the last ticket sent
+const WHATSAPP_STATUS = {
+  pending: { label: "Pending", color: "#64748b" },
+  sent: { label: "Sent", color: "#2563eb" },
+  delivered: { label: "Delivered", color: "#059669" },
+  read: { label: "Read", color: "#047857" },
+  failed: { label: "Failed", color: "#dc2626" },
+};
+
 function ReportView({
   type,
   attendees = [],
@@ -362,13 +371,14 @@ function ReportView({
                   <th>Gender</th>
                   <th>Date</th>
                   <th>Last Updated</th>
+                  <th>WhatsApp</th>
                   {hasMemberActions && <th className="report-print-hide">Actions</th>}
                 </tr>
               </thead>
               <tbody>
                 {filteredAttendees.length === 0 ? (
                   <tr>
-                    <td colSpan={hasMemberActions ? 10 : 9} className="py-6 text-center text-slate-500">No report data found.</td>
+                    <td colSpan={hasMemberActions ? 11 : 10} className="py-6 text-center text-slate-500">No report data found.</td>
                   </tr>
                 ) : (
                   filteredAttendees.map((item, index) => (
@@ -382,6 +392,16 @@ function ReportView({
                       <td>{item.gender || "-"}</td>
                       <td>{formatDate(item.createdAt)}</td>
                       <td>{formatDateTime(item.updatedAt)}</td>
+                      <td>
+                        <span style={{ fontWeight: 600, color: WHATSAPP_STATUS[item.whatsappStatus]?.color || "#64748b" }}>
+                          {WHATSAPP_STATUS[item.whatsappStatus]?.label || "Not sent"}
+                        </span>
+                        {item.whatsappStatus === "failed" && item.whatsappError && (
+                          <div style={{ fontSize: "11.5px", color: "#b91c1c", maxWidth: "260px", marginTop: "2px" }}>
+                            {item.whatsappError}
+                          </div>
+                        )}
+                      </td>
                       {hasMemberActions && (
                         <td className="report-print-hide">
                           <div className="flex flex-wrap gap-1.5">

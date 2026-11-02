@@ -113,6 +113,8 @@ router.post("/", async (req, res) => {
       savedAttendee.whatsappStatus = whatsappResult.status;
       savedAttendee.whatsappSent = whatsappResult.success;
       savedAttendee.whatsappSentAt = whatsappResult.success ? new Date() : null;
+      savedAttendee.whatsappMessageId = whatsappResult.messageId;
+      savedAttendee.whatsappError = whatsappResult.success ? undefined : whatsappResult.message;
 
       await savedAttendee.save();
     }
@@ -297,6 +299,8 @@ router.post("/:id/resend-whatsapp", async (req, res) => {
     attendee.whatsappStatus = whatsappResult.status;
     attendee.whatsappSent = whatsappResult.success;
     attendee.whatsappSentAt = whatsappResult.success ? new Date() : attendee.whatsappSentAt;
+    if (whatsappResult.success) attendee.whatsappMessageId = whatsappResult.messageId;
+    attendee.whatsappError = whatsappResult.success ? undefined : whatsappResult.message;
 
     await attendee.save();
 

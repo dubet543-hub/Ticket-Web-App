@@ -84,12 +84,23 @@ const attendeeSchema = new mongoose.Schema(
 
     whatsappStatus: {
       type: String,
-      enum: ["pending", "sent", "delivered", "failed", "not-sent"],
+      enum: ["pending", "sent", "delivered", "read", "failed", "not-sent"],
       default: "not-sent",
     },
 
     whatsappSentAt: {
       type: Date,
+    },
+
+    // Meta message id of the last ticket sent; delivery webhooks are matched on it
+    whatsappMessageId: {
+      type: String,
+      index: true,
+    },
+
+    // Reason Meta gave when the last ticket could not be sent or delivered
+    whatsappError: {
+      type: String,
     },
 
     whatsappNo: {

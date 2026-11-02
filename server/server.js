@@ -12,6 +12,7 @@ const reportRoutes = require("./routes/reportRoutes");
 const facilityRoutes = require("./routes/facilityRoutes");
 const userRoutes = require("./routes/userRoutes");
 const { diagnoseWhatsApp, isWhatsAppConfigured } = require("./utils/whatsappService");
+const whatsappWebhookRoutes = require("./routes/whatsappWebhookRoutes");
 
 const app = express();
 
@@ -32,7 +33,8 @@ app.use(
   })
 );
 // Raised limit: the client uploads the rendered ticket image for WhatsApp
-app.use(express.json({ limit: "10mb" }));
+// rawBody is kept for verifying Meta's webhook signature
+app.use(express.json({ limit: "10mb", verify: (req, res, buf) => { req.rawBody = buf; } }));
 
 // Test route
 app.get("/", (req, res) => {
@@ -47,6 +49,7 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/facilities", facilityRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/whatsapp/webhook", whatsappWebhookRoutes);
 
 // Lets the client choose automatic (Cloud API) or manual WhatsApp sending
 app.get("/api/whatsapp/status", (req, res) => {
