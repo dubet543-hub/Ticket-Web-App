@@ -150,7 +150,7 @@ const styles = `
   }
 
   .ci-result.ok   { --ci-main: #059669; --ci-soft: #ecfdf5; --ci-border: #a7f3d0; }
-  .ci-result.dup  { --ci-main: #d97706; --ci-soft: #fffbeb; --ci-border: #fcd34d; }
+  .ci-result.dup  { --ci-main: #dc2626; --ci-soft: #fef2f2; --ci-border: #fca5a5; }
   .ci-result.bad  { --ci-main: #dc2626; --ci-soft: #fef2f2; --ci-border: #fecaca; }
 
   .ci-result-head {
@@ -287,7 +287,7 @@ const styles = `
   }
 
   .ci-tag.ok  { background: #ecfdf5; color: #047857; }
-  .ci-tag.dup { background: #fffbeb; color: #b45309; }
+  .ci-tag.dup { background: #fee2e2; color: #b91c1c; }
   .ci-tag.bad { background: #fef2f2; color: #b91c1c; }
 
   @media (max-width: 760px) {
@@ -324,7 +324,7 @@ const resultKind = (result) => {
 
 const RESULT_TEXT = {
   ok: "Entry allowed",
-  dup: "Already checked in",
+  dup: "Already scanned",
   bad: "Entry denied",
 };
 
@@ -354,7 +354,11 @@ function CheckInResult({ result, onDismiss }) {
         <div className="ci-result-icon"><ResultIcon kind={kind} /></div>
         <div>
           <div className="ci-result-status">{RESULT_TEXT[kind]}</div>
-          <div className="ci-result-msg">{result.message}</div>
+          <div className="ci-result-msg">
+            {kind === "dup"
+              ? <>Do not allow entry. This ticket was already used{attendee?.duplicateScanCount > 0 ? ` · repeat attempt #${attendee.duplicateScanCount}` : ""}.</>
+              : result.message}
+          </div>
         </div>
         <button type="button" className="ci-icon-btn" onClick={onDismiss} title="Dismiss" aria-label="Dismiss result">
           <DeleteIcon />
@@ -390,7 +394,7 @@ function CheckInResult({ result, onDismiss }) {
               <div className="ci-detail-value">{formatMoney(attendee.coverAmount)}</div>
             </div>
             <div className="ci-detail">
-              <div className="ci-detail-label">{kind === "dup" ? "First checked in" : "Checked in at"}</div>
+              <div className="ci-detail-label">{kind === "dup" ? "Already entered at" : "Checked in at"}</div>
               <div className="ci-detail-value">
                 {formatDateTime(attendee.checkedInAt)}
                 {lastGate ? ` · ${lastGate}` : ""}

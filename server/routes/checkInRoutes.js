@@ -32,14 +32,25 @@ router.post("/", async (req, res) => {
       });
     }
 
-    // Check if already checked in (prevent duplicate scan)
-    if (attendee.isCheckedIn) {
-      return res.status(400).json({
+    // A ticket works once, whether it was scanned or typed: any repeat is refused and counted
+    const rejectDuplicate = async () => {
+      const duplicate = await Attendee.findByIdAndUpdate(
+        attendee._id,
+        { $inc: { duplicateScanCount: 1 }, $set: { lastDuplicateScanAt: new Date() } },
+        { new: true }
+      )
+        .populate("category")
+        .populate("checkInHistory.facility");
+
+      return res.status(409).json({
         success: false,
-        message: "Ticket already checked in",
-        attendee,
+        duplicate: true,
+        message: `Already scanned – ${duplicate.registrationNo} was already used for entry`,
+        attendee: duplicate,
       });
-    }
+    };
+
+    if (attendee.isCheckedIn) return rejectDuplicate();
 
     // Validate facility if provided
     let facilityId = null;
@@ -53,28 +64,28 @@ router.post("/", async (req, res) => {
       facilityId = facility;
     }
 
-    // Record check-in
-    attendee.isCheckedIn = true;
-    attendee.checkedInAt = new Date();
-
-    // Add to check-in history
-    if (!attendee.checkInHistory) {
-      attendee.checkInHistory = [];
-    }
-
-    attendee.checkInHistory.push({
-      facility: facilityId,
-      checkedInAt: new Date(),
-      notes: notes || "",
-      checkedInBy: checkedInBy || "system",
-    });
-
-    await attendee.save();
-
-    // Return populated attendee with category
-    const populatedAttendee = await Attendee.findById(attendee._id)
+    // Check in only if still unused, in one atomic step, so two scans of the same
+    // ticket arriving together (double Enter, two gates) can't both get through
+    const now = new Date();
+    const populatedAttendee = await Attendee.findOneAndUpdate(
+      { _id: attendee._id, isCheckedIn: { $ne: true } },
+      {
+        $set: { isCheckedIn: true, checkedInAt: now },
+        $push: {
+          checkInHistory: {
+            facility: facilityId,
+            checkedInAt: now,
+            notes: notes || "",
+            checkedInBy: checkedInBy || "system",
+          },
+        },
+      },
+      { new: true }
+    )
       .populate("category")
       .populate("checkInHistory.facility");
+
+    if (!populatedAttendee) return rejectDuplicate();
 
     res.status(200).json({
       success: true,

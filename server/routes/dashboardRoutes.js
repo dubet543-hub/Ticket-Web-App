@@ -24,9 +24,11 @@ router.get("/summary", async (req, res) => {
       whatsappStatus: "failed",
     });
 
-    const duplicateScanCount = await Attendee.countDocuments({
-      "checkInHistory.1": { $exists: true }, // Has multiple check-in entries
-    });
+    // Refused repeat scans/typed entries across all tickets
+    const duplicateData = await Attendee.aggregate([
+      { $group: { _id: null, total: { $sum: { $ifNull: ["$duplicateScanCount", 0] } } } },
+    ]);
+    const duplicateScanCount = duplicateData.length > 0 ? duplicateData[0].total : 0;
 
     const revenueData = await Attendee.aggregate([
       {

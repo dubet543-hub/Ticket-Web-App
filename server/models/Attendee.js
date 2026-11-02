@@ -66,6 +66,16 @@ const attendeeSchema = new mongoose.Schema(
       type: Date,
     },
 
+    // Times this ticket was scanned or typed again after entry (refused)
+    duplicateScanCount: {
+      type: Number,
+      default: 0,
+    },
+
+    lastDuplicateScanAt: {
+      type: Date,
+    },
+
     whatsappSent: {
       type: Boolean,
       default: false,
