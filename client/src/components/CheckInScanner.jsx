@@ -469,7 +469,7 @@ function CheckInScanner({
                     name="scanValue"
                     value={checkInForm.scanValue}
                     onChange={onFormChange}
-                    placeholder="Scan QR or enter Reg. No. (e.g. DTKJE0001)"
+                    placeholder="Scan QR or enter Reg. No. (e.g. CP0001)"
                     autoComplete="off"
                     className="ci-input"
                   />

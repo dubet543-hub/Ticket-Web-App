@@ -8,9 +8,9 @@ const Category = require("../models/Category");
 const { sendWhatsAppTicket } = require("../utils/whatsappService");
 const { generateAttendeeQRCode } = require("../utils/qrGenerator");
 
-// Event prefix for registration numbers: DTKJE0001, DTKJE0002, ...
-// (Dhamaaka – The Karan Johar Edition). Override with REGISTRATION_PREFIX for a new event.
-const REGISTRATION_PREFIX = (process.env.REGISTRATION_PREFIX || "DTKJE").toUpperCase();
+// Prefix for registration numbers: CP0001, CP0002, ... (Centre Point).
+// Override with the REGISTRATION_PREFIX env var for a different event.
+const REGISTRATION_PREFIX = (process.env.REGISTRATION_PREFIX || "CP").toUpperCase();
 
 // Helper: next registration number after the highest one in use
 // (not a count, so deleted members never cause a repeated number)
