@@ -47,10 +47,10 @@ export const generateWhatsAppLink = (attendee, options) => {
   if (!number) return "";
 
   const message = generateTicketMessage(attendee, options);
-  // Computers: straight to WhatsApp Web (the Business account linked in the browser),
-  // skipping wa.me's "open app or use WhatsApp Web" page. Phones keep wa.me to open the app.
+  // Computers: straight into the WhatsApp desktop app (one window, no new tab per ticket;
+  // WhatsApp Web can't be reused from another site). Phones keep wa.me to open the app.
   const onPhone = window.matchMedia("(pointer: coarse)").matches;
   return onPhone
     ? `https://wa.me/${number}?text=${encodeURIComponent(message)}`
-    : `https://web.whatsapp.com/send?phone=${number}&text=${encodeURIComponent(message)}`;
+    : `whatsapp://send?phone=${number}&text=${encodeURIComponent(message)}`;
 };
