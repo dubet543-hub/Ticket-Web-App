@@ -51,9 +51,10 @@ app.use("/api/facilities", facilityRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/whatsapp/webhook", whatsappWebhookRoutes);
 
-// Lets the client choose automatic (Cloud API) or manual WhatsApp sending
+// Lets the client choose automatic (Cloud API) or manual WhatsApp sending.
+// Manual unless WHATSAPP_AUTO_SEND=true, so tickets aren't lost while Meta can't deliver.
 app.get("/api/whatsapp/status", (req, res) => {
-  res.json({ configured: isWhatsAppConfigured() });
+  res.json({ configured: isWhatsAppConfigured() && process.env.WHATSAPP_AUTO_SEND === "true" });
 });
 
 app.get("/api/whatsapp/diagnose", async (req, res) => {
