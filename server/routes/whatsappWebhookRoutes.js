@@ -48,7 +48,10 @@ const describeError = (error = {}) =>
     .join(" – ");
 
 router.post("/", async (req, res) => {
-  if (!isSignedByMeta(req)) return res.sendStatus(401);
+  if (!isSignedByMeta(req)) {
+    console.warn("WhatsApp webhook rejected: signature doesn't match WHATSAPP_APP_SECRET");
+    return res.sendStatus(401);
+  }
 
   // Answer straight away; Meta retries if it doesn't get a 200 quickly
   res.sendStatus(200);
