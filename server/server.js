@@ -13,6 +13,7 @@ const facilityRoutes = require("./routes/facilityRoutes");
 const userRoutes = require("./routes/userRoutes");
 const { diagnoseWhatsApp, ensureWebhookSubscription, isWhatsAppConfigured } = require("./utils/whatsappService");
 const whatsappWebhookRoutes = require("./routes/whatsappWebhookRoutes");
+const { requireAuth, requireAdmin } = require("./middleware/auth");
 
 const app = express();
 
@@ -41,6 +42,14 @@ app.get("/", (req, res) => {
   res.send("Ticket Generator API is running...");
 });
 
+// Meta calls the webhook itself; it is checked by signature, not by login
+app.use("/api/whatsapp/webhook", whatsappWebhookRoutes);
+
+// Every other API call needs a logged-in user, except logging in
+app.use("/api", (req, res, next) =>
+  req.method === "POST" && req.path === "/users/login" ? next() : requireAuth(req, res, next)
+);
+
 // Routes
 app.use("/api/categories", categoryRoutes);
 app.use("/api/attendees", attendeeRoutes);
@@ -49,7 +58,6 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/facilities", facilityRoutes);
 app.use("/api/users", userRoutes);
-app.use("/api/whatsapp/webhook", whatsappWebhookRoutes);
 
 // Lets the client choose automatic (Cloud API) or manual WhatsApp sending.
 // Manual unless WHATSAPP_AUTO_SEND=true, so tickets aren't lost while Meta can't deliver.
@@ -57,7 +65,7 @@ app.get("/api/whatsapp/status", (req, res) => {
   res.json({ configured: isWhatsAppConfigured() && process.env.WHATSAPP_AUTO_SEND === "true" });
 });
 
-app.get("/api/whatsapp/diagnose", async (req, res) => {
+app.get("/api/whatsapp/diagnose", requireAdmin, async (req, res) => {
   res.json(await diagnoseWhatsApp());
 });
 

@@ -1,5 +1,6 @@
 const express = require("express");
 const User = require("../models/User");
+const { issueToken, requireAdmin } = require("../middleware/auth");
 
 const router = express.Router();
 
@@ -29,7 +30,7 @@ router.get("/:id", async (req, res) => {
 });
 
 // Create user
-router.post("/", async (req, res) => {
+router.post("/", requireAdmin, async (req, res) => {
   try {
     const { name, username, password, role, contact, email, status } = req.body;
 
@@ -70,7 +71,7 @@ router.post("/", async (req, res) => {
 });
 
 // Update user
-router.put("/:id", async (req, res) => {
+router.put("/:id", requireAdmin, async (req, res) => {
   try {
     const { name, username, password, role, contact, email, status } = req.body;
 
@@ -108,7 +109,7 @@ router.put("/:id", async (req, res) => {
 });
 
 // Delete user
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", requireAdmin, async (req, res) => {
   try {
     const user = await User.findByIdAndDelete(req.params.id);
     if (!user) {
@@ -149,8 +150,7 @@ router.post("/login", async (req, res) => {
     const userResponse = user.toObject();
     delete userResponse.password;
 
-    // Generate a simple token (in production, use JWT)
-    const token = `${user._id}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const token = issueToken(user);
 
     res.json({
       message: "Login successful",
