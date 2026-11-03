@@ -47,5 +47,10 @@ export const generateWhatsAppLink = (attendee, options) => {
   if (!number) return "";
 
   const message = generateTicketMessage(attendee, options);
-  return `https://wa.me/${number}?text=${encodeURIComponent(message)}`;
+  // Computers: straight to WhatsApp Web (the Business account linked in the browser),
+  // skipping wa.me's "open app or use WhatsApp Web" page. Phones keep wa.me to open the app.
+  const onPhone = window.matchMedia("(pointer: coarse)").matches;
+  return onPhone
+    ? `https://wa.me/${number}?text=${encodeURIComponent(message)}`
+    : `https://web.whatsapp.com/send?phone=${number}&text=${encodeURIComponent(message)}`;
 };

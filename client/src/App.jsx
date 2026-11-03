@@ -558,7 +558,8 @@ function App() {
       downloadBlob(await ticketPromise, fileName);
     }
 
-    if (!window.open(link, "_blank")) {
+    // Named window: every ticket reuses the same WhatsApp tab instead of opening a new one
+    if (!window.open(link, "whatsapp")) {
       alert("Popup blocked. Allow popups for this site, then click WhatsApp again.");
     }
   };
