@@ -24,6 +24,8 @@ function ReportView({
   const [salesPerson, setSalesPerson] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
+  // Name / Reg No / mobile search filters as you type (no Submit needed)
+  const [searchText, setSearchText] = useState("");
   const [appliedFilters, setAppliedFilters] = useState({
     searchFacility: "",
     salesPerson: "",
@@ -56,9 +58,17 @@ function ReportView({
       const fromOk = !selectedFromDate || (createdAt && createdAt >= new Date(`${selectedFromDate}T00:00:00`));
       const toOk = !selectedToDate || (createdAt && createdAt <= new Date(`${selectedToDate}T23:59:59.999`));
 
-      return matchesFacility && matchesSalesPerson && fromOk && toOk;
+      const query = searchText.trim().toLowerCase();
+      const queryDigits = query.replace(/\D/g, "");
+      const matchesSearch =
+        !query ||
+        String(item.name || "").toLowerCase().includes(query) ||
+        String(item.registrationNo || "").toLowerCase().includes(query) ||
+        (queryDigits.length > 0 && String(item.mobile || "").replace(/\D/g, "").includes(queryDigits));
+
+      return matchesFacility && matchesSalesPerson && fromOk && toOk && matchesSearch;
     });
-  }, [attendees, type, appliedFilters]);
+  }, [attendees, type, appliedFilters, searchText]);
 
   const reportTitle =
     type === "facility"
@@ -75,6 +85,7 @@ function ReportView({
       : "Member Report";
 
   const resetFilters = () => {
+    setSearchText("");
     setSearchFacility("");
     setSalesPerson("");
     setFromDate("");
@@ -165,6 +176,22 @@ function ReportView({
       <div className="space-y-5">
       <div className="report-print-hide rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
         <h3 className="mb-3 text-lg font-bold text-slate-900">Search Here</h3>
+
+        <div style={{ position: "relative", marginBottom: "12px" }}>
+          <input
+            type="search"
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            placeholder="Search by name, Reg No (CPD0001) or mobile number"
+            className="form-input"
+            autoComplete="off"
+          />
+          {searchText && (
+            <p style={{ marginTop: "6px", fontSize: "13px", color: "#475569" }}>
+              {filteredAttendees.length} {filteredAttendees.length === 1 ? "match" : "matches"} for “{searchText.trim()}”
+            </p>
+          )}
+        </div>
 
         {type === "facility" && (
           <div className="space-y-3">
