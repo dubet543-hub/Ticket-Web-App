@@ -30,13 +30,12 @@ const REPORTS = {
   member: {
     title: "Member Report",
     columns: [
-      ["SN", 6], ["Reg No", 12], ["Name", 26], ["Category", 14], ["Email", 26], ["Mobile", 14],
-      ["Gender", 9], ["Ticket Price", 12], ["Cover Price", 12], ["Registered On", 20],
+      ["SN", 6], ["Reg No", 12], ["Name", 26], ["Category", 14], ["Mobile", 14], ["Ticket Price", 12], ["Cover Price", 12], ["Registered On", 20],
       ["Checked In", 11], ["Checked In At", 20], ["WhatsApp", 11], ["WhatsApp Error", 40],
     ],
     row: (item, index) => [
       amount(index + 1), text(item.registrationNo), text(item.name?.toUpperCase()), text(item.category?.categoryName),
-      text(item.email), text(item.mobile), text(item.gender), amount(item.amount), amount(item.coverAmount),
+      text(item.mobile), amount(item.amount), amount(item.coverAmount),
       date(item.createdAt), text(item.isCheckedIn ? "Yes" : "No"), date(item.checkedInAt),
       text(WHATSAPP_LABEL[item.whatsappStatus] || "Not sent"),
       text(item.whatsappStatus === "failed" ? item.whatsappError : ""),
@@ -46,11 +45,11 @@ const REPORTS = {
     title: "Registration Report",
     columns: [
       ["SN", 6], ["Reg No", 12], ["Name", 26], ["Category", 14], ["Ticket Amount", 14], ["Cover Amount", 14],
-      ["Mobile", 14], ["Gender", 9], ["Entry By", 20], ["Date", 20],
+      ["Mobile", 14], ["Entry By", 20], ["Date", 20],
     ],
     row: (item, index) => [
       amount(index + 1), text(item.registrationNo), text(item.name?.toUpperCase()), text(item.category?.categoryName),
-      amount(item.amount), amount(item.coverAmount), text(item.mobile), text(item.gender),
+      amount(item.amount), amount(item.coverAmount), text(item.mobile),
       text(item.createdBy?.name || "Centre Point Hotel"), date(item.createdAt),
     ],
     // Total row under the Ticket Amount and Cover Amount columns

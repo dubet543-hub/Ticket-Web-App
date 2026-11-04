@@ -223,9 +223,9 @@ function AttendeeForm({
 
             <div className="af-form-stack">
 
-              {/* ── Personal Info ── */}
+              {/* ── Member details ── */}
               <div>
-                <p className="af-section-title">Personal Information</p>
+                <p className="af-section-title">Member Details</p>
                 <div className="af-grid-3">
                   <div className="af-field">
                     <label className="af-label">
@@ -238,34 +238,6 @@ function AttendeeForm({
                     />
                   </div>
                   <div className="af-field">
-                    <label className="af-label">Gender</label>
-                    <div className="af-select-wrap">
-                      <select name="gender" value={attendeeForm.gender} onChange={onFormChange} className="af-select">
-                        <option value="">Select gender</option>
-                        <option value="Male">Male</option>
-                        <option value="Female">Female</option>
-                        <option value="Other">Other</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div className="af-field">
-                    <label className="af-label">Age</label>
-                    <input
-                      type="number" name="age"
-                      value={attendeeForm.age} onChange={onFormChange}
-                      placeholder="e.g. 25" className="af-input" min={1} max={120}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="af-divider" />
-
-              {/* ── Contact & Ticket ── */}
-              <div>
-                <p className="af-section-title">Contact &amp; Ticket</p>
-                <div className="af-grid-3">
-                  <div className="af-field">
                     <label className="af-label">
                       Mobile <span className="af-required">*</span>
                       <span className="af-label-hint">(WhatsApp)</span>
@@ -274,14 +246,6 @@ function AttendeeForm({
                       type="text" name="mobile"
                       value={attendeeForm.mobile} onChange={onFormChange}
                       placeholder="10-digit number" className="af-input" required
-                    />
-                  </div>
-                  <div className="af-field">
-                    <label className="af-label">Email</label>
-                    <input
-                      type="email" name="email"
-                      value={attendeeForm.email} onChange={onFormChange}
-                      placeholder="example@email.com" className="af-input"
                     />
                   </div>
                   <div className="af-field">

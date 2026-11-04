@@ -93,7 +93,7 @@ function App() {
   });
 
   const [attendeeForm, setAttendeeForm] = useState({
-    name: "", email: "", mobile: "", gender: "", age: "", category: "", amount: "", coverAmount: "", sendWhatsApp: false,
+    name: "", mobile: "", category: "", amount: "", coverAmount: "", sendWhatsApp: false,
   });
 
   const [checkInForm, setCheckInForm] = useState({
@@ -269,7 +269,7 @@ function App() {
   const resetFacilityForm = () => setFacilityForm({ facilityName: "", description: "" });
 
   const resetAttendeeForm = () => {
-    setAttendeeForm({ name: "", email: "", mobile: "", gender: "", age: "", category: "", amount: "", coverAmount: "", sendWhatsApp: false });
+    setAttendeeForm({ name: "", mobile: "", category: "", amount: "", coverAmount: "", sendWhatsApp: false });
     setEditingAttendeeId(null);
   };
 
@@ -278,10 +278,7 @@ function App() {
     setEditingAttendeeId(attendee._id);
     setAttendeeForm({
       name:     attendee.name     || "",
-      email:    attendee.email    || "",
       mobile:   attendee.mobile   || "",
-      gender:   attendee.gender   || "",
-      age:      attendee.age      || "",
       category: attendee.category?._id || "",
       amount:      attendee.amount      ?? "",
       coverAmount: attendee.coverAmount ?? "",
@@ -394,7 +391,6 @@ function App() {
       const { sendWhatsApp, ...form } = attendeeForm;
       const payload = {
         ...form,
-        age:         form.age ? Number(form.age) : "",
         amount:      Number(form.amount),
         coverAmount: Number(form.coverAmount),
       };

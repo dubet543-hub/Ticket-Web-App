@@ -346,7 +346,6 @@ function ReportView({
                   <th>Ticket Amount</th>
                   <th>Cover Amount</th>
                   <th>Mobile</th>
-                  <th>Gender</th>
                   <th>Entry By</th>
                   <th>Date</th>
                   {onDeleteAttendee && <th className="report-print-hide">Actions</th>}
@@ -355,7 +354,7 @@ function ReportView({
               <tbody>
                 {filteredAttendees.length === 0 ? (
                   <tr>
-                    <td colSpan={onDeleteAttendee ? 11 : 10} className="py-6 text-center text-slate-500">No report data found.</td>
+                    <td colSpan={onDeleteAttendee ? 10 : 9} className="py-6 text-center text-slate-500">No report data found.</td>
                   </tr>
                 ) : (
                   filteredAttendees.map((item, index) => (
@@ -367,7 +366,6 @@ function ReportView({
                       <td>{item.amount || 0}</td>
                       <td>{item.coverAmount || 0}</td>
                       <td>{item.mobile || "-"}</td>
-                      <td>{item.gender || "-"}</td>
                       <td>{item.createdBy?.name || "Centre Point Hotel"}</td>
                       <td>{formatDate(item.createdAt)}</td>
                       {onDeleteAttendee && (
@@ -394,9 +392,7 @@ function ReportView({
                   <th>User ID</th>
                   <th>Name</th>
                   <th>Category</th>
-                  <th>Email</th>
                   <th>Mobile</th>
-                  <th>Gender</th>
                   <th>Date</th>
                   <th>Last Updated</th>
                   <th>WhatsApp</th>
@@ -406,7 +402,7 @@ function ReportView({
               <tbody>
                 {filteredAttendees.length === 0 ? (
                   <tr>
-                    <td colSpan={hasMemberActions ? 11 : 10} className="py-6 text-center text-slate-500">No report data found.</td>
+                    <td colSpan={hasMemberActions ? 9 : 8} className="py-6 text-center text-slate-500">No report data found.</td>
                   </tr>
                 ) : (
                   filteredAttendees.map((item, index) => (
@@ -415,9 +411,7 @@ function ReportView({
                       <td>{item.registrationNo || "-"}</td>
                       <td>{item.name?.toUpperCase() || "-"}</td>
                       <td>{item.category?.categoryName || "-"}</td>
-                      <td>{item.email || "-"}</td>
                       <td>{item.mobile || "-"}</td>
-                      <td>{item.gender || "-"}</td>
                       <td>{formatDate(item.createdAt)}</td>
                       <td>{formatDateTime(item.updatedAt)}</td>
                       <td>
