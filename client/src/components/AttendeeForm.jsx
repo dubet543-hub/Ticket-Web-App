@@ -2,6 +2,7 @@ function AttendeeForm({
   attendeeForm,
   attendeeLoading,
   editingAttendeeId,
+  registrationNo = "",
   categories = [],
   onFormChange,
   onSubmit,
@@ -63,6 +64,19 @@ function AttendeeForm({
         }
         .af-subtitle { font-size: 13px; color: #64748b; margin-top: 4px; }
 
+        .af-header-side { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
+        .af-ticket-no {
+          border: 1.5px dashed #4a9b8e; border-radius: 12px; background: #f0faf7;
+          padding: 8px 16px; text-align: center; min-width: 150px;
+        }
+        .af-ticket-no-label {
+          font-family: 'DM Mono', monospace; font-size: 10.5px; letter-spacing: 0.12em;
+          text-transform: uppercase; color: #3d7d72; margin: 0;
+        }
+        .af-ticket-no-value {
+          font-family: 'DM Mono', monospace; font-size: 24px; font-weight: 700;
+          color: #1f4f47; margin: 2px 0 0; letter-spacing: 0.04em;
+        }
         .af-cancel-btn {
           display: inline-flex; align-items: center; gap: 5px;
           background: #f1f5f9; border: 1px solid #e2e8f0;
@@ -211,14 +225,22 @@ function AttendeeForm({
                   Fill the details below to generate a ticket &amp; QR instantly.
                 </p>
               </div>
-              {editingAttendeeId && (
-                <button type="button" className="af-cancel-btn" onClick={onCancelEdit}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                  </svg>
-                  Cancel
-                </button>
-              )}
+              <div className="af-header-side">
+                {registrationNo && (
+                  <div className="af-ticket-no" aria-live="polite">
+                    <p className="af-ticket-no-label">{editingAttendeeId ? "Ticket No" : "Next Ticket No"}</p>
+                    <p className="af-ticket-no-value">{registrationNo}</p>
+                  </div>
+                )}
+                {editingAttendeeId && (
+                  <button type="button" className="af-cancel-btn" onClick={onCancelEdit}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                    Cancel
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="af-form-stack">

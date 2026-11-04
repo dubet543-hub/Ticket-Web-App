@@ -128,6 +128,9 @@ function App() {
 
   const [editingAttendeeId, setEditingAttendeeId] = useState(null);
   const [whatsappAutoSend,  setWhatsappAutoSend]  = useState(false);
+  // Ticket number shown on the Register Member form: the next one, or the member being edited
+  const [nextRegistrationNo, setNextRegistrationNo] = useState("");
+  const [editingRegistrationNo, setEditingRegistrationNo] = useState("");
 
   const scanInputRef         = useRef(null);
   const scanBufferRef        = useRef("");
@@ -205,6 +208,15 @@ function App() {
     }
   };
 
+  const fetchNextRegistrationNo = async () => {
+    try {
+      const res = await API.get("/attendees/next-registration-no");
+      setNextRegistrationNo(res.data?.registrationNo || "");
+    } catch (err) {
+      console.error("fetchNextRegistrationNo:", err);
+    }
+  };
+
   const fetchWhatsAppStatus = async () => {
     try {
       const res = await API.get("/whatsapp/status");
@@ -241,6 +253,7 @@ function App() {
   useEffect(() => {
     if (!isAuthenticated) return;
     if (["member-report", "facility-report", "registration-report", "attendees"].includes(activeMenu)) fetchAttendees();
+    if (activeMenu === "attendees") fetchNextRegistrationNo();
     if (activeMenu === "dashboard") fetchDashboardSummary();
   }, [activeMenu, isAuthenticated]);
 
@@ -271,11 +284,13 @@ function App() {
   const resetAttendeeForm = () => {
     setAttendeeForm({ name: "", mobile: "", category: "", amount: "", coverAmount: "", sendWhatsApp: false });
     setEditingAttendeeId(null);
+    setEditingRegistrationNo("");
   };
 
   // ── Attendee edit / delete ──────────────────────────────────────────────────
   const handleEditAttendee = (attendee) => {
     setEditingAttendeeId(attendee._id);
+    setEditingRegistrationNo(attendee.registrationNo || "");
     setAttendeeForm({
       name:     attendee.name     || "",
       mobile:   attendee.mobile   || "",
@@ -388,9 +403,9 @@ function App() {
 
       // Open WhatsApp right away (no alert first, so the popup isn't blocked)
       if (sendWhatsApp) await handleSendWhatsApp(res.data, { updated: isUpdate });
-      else alert(isUpdate ? "Attendee updated successfully" : "Attendee added successfully");
+      else alert(isUpdate ? `${res.data.registrationNo} updated successfully` : `Member added: ticket ${res.data.registrationNo}`);
       resetAttendeeForm();
-      await Promise.all([fetchAttendees(), fetchDashboardSummary()]);
+      await Promise.all([fetchAttendees(), fetchDashboardSummary(), fetchNextRegistrationNo()]);
     } catch (err) {
       alert(err?.response?.data?.message || "Failed to save attendee");
     } finally {
@@ -761,6 +776,7 @@ function App() {
                     attendeeForm={attendeeForm}
                     attendeeLoading={attendeeLoading}
                     editingAttendeeId={editingAttendeeId}
+                    registrationNo={editingAttendeeId ? editingRegistrationNo : nextRegistrationNo}
                     categories={categories}
                     onFormChange={handleAttendeeChange}
                     onSubmit={handleAttendeeSubmit}

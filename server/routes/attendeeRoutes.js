@@ -156,6 +156,16 @@ router.get("/", async (req, res) => {
 // =====================
 // GET SINGLE ATTENDEE
 // =====================
+// Ticket number the next new member will get (shown on the Register Member form).
+// A preview only: if two people save at the same moment, the second gets the one after.
+router.get("/next-registration-no", async (req, res) => {
+  try {
+    res.json({ registrationNo: await generateRegistrationNo() });
+  } catch (error) {
+    res.status(500).json({ message: "Error reading next ticket number", error: error.message });
+  }
+});
+
 router.get("/:id", async (req, res) => {
   try {
     const attendee = await Attendee.findById(req.params.id).populate("category");
