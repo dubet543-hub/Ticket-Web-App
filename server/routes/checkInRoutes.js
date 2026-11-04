@@ -3,7 +3,7 @@ const router = express.Router();
 
 const Attendee = require("../models/Attendee");
 const Facility = require("../models/Facility");
-const { extractQRToken, normalizeRegistrationNo } = require("../utils/qrGenerator");
+const { parseScanValue } = require("../utils/qrGenerator");
 
 // Scan / check-in by qrToken (bare or inside the full QR payload) or a typed registrationNo
 router.post("/", async (req, res) => {
@@ -16,20 +16,21 @@ router.post("/", async (req, res) => {
       });
     }
 
-    const lookupValue = extractQRToken(scanValue);
-    const registrationNo = normalizeRegistrationNo(lookupValue);
-    const isQrScan = String(scanValue).includes("TKN:");
+    const { isQr, token, registrationNo } = parseScanValue(scanValue);
 
-    const attendee = await Attendee.findOne({
-      $or: [{ qrToken: lookupValue }, { registrationNo }],
-    }).populate("category");
+    // A complete token decides on its own (a deleted ticket must not match a reused Reg No);
+    // otherwise fall back to the Reg No, typed or read from the start of a cut-off scan
+    const attendee = token
+      ? await Attendee.findOne({ qrToken: token }).populate("category")
+      : registrationNo
+        ? await Attendee.findOne({ registrationNo }).populate("category")
+        : null;
 
     if (!attendee) {
-      return res.status(404).json({
-        success: false,
-        // For typed numbers, show what was searched so staff can spot a typo
-        message: isQrScan || registrationNo.length > 12 ? "Invalid ticket" : `No ticket found for ${registrationNo}`,
-      });
+      let message = "Invalid ticket";
+      if (isQr && !token && !registrationNo) message = "Scan incomplete – please scan again or type the Reg. No.";
+      else if (!token && registrationNo) message = `No ticket found for ${registrationNo}`;
+      return res.status(404).json({ success: false, message });
     }
 
     // A ticket works once, whether it was scanned or typed: any repeat is refused and counted

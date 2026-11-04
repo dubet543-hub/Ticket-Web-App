@@ -56,10 +56,29 @@ const normalizeRegistrationNo = (value = "") => {
   return `${letters || REGISTRATION_PREFIX}${digits.padStart(4, "0")}`;
 };
 
-// Accepts a full QR payload or a bare token/registration number and returns the value to look up
-const extractQRToken = (scanValue = "") => {
-  const match = String(scanValue).match(/TKN:([A-Za-z0-9-]+)/);
-  return match ? match[1] : String(scanValue).trim();
+// Rebuilds a qrToken (UUID) from scanned text; null unless all 32 hex digits arrived
+const toToken = (text = "") => {
+  const hex = String(text).replace(/[^0-9a-f]/gi, "").toLowerCase();
+  if (hex.length !== 32) return null;
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+};
+
+// Reads a scan (full QR text, a bare token, or a typed registration number).
+// Hardware scanners sometimes drop Shift or stop early, so "TKN;" / "reg:" are accepted and a
+// scan cut off before its token still yields the registration number near the start of the QR.
+const parseScanValue = (scanValue = "") => {
+  const raw = String(scanValue).trim();
+  const tokenMatch = raw.match(/TKN\s*[:;]\s*([0-9a-f-]+)/i);
+  const regMatch = raw.match(/REG\s*[:;]\s*([A-Z]*\d+)/i);
+  const isQr = Boolean(tokenMatch || regMatch || /DHAMAAKA/i.test(raw));
+
+  return {
+    isQr,
+    token: tokenMatch ? toToken(tokenMatch[1]) : isQr ? null : toToken(raw),
+    registrationNo: regMatch
+      ? normalizeRegistrationNo(regMatch[1])
+      : isQr ? null : normalizeRegistrationNo(raw),
+  };
 };
 
 // Generate QR image (data URL) carrying the attendee's details
@@ -90,7 +109,7 @@ module.exports = {
   generateQRCode,
   getEntryType,
   buildQRPayload,
-  extractQRToken,
+  parseScanValue,
   REGISTRATION_PREFIX,
   normalizeRegistrationNo,
   generateAttendeeQRCode,
