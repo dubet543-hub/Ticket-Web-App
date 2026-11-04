@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { downloadReportExcel } from "../utils/reportExcel";
 
 // Delivery status reported by Meta for the last ticket sent
 const WHATSAPP_STATUS = {
@@ -108,6 +109,19 @@ function ReportView({
   };
 
   const hasMemberActions = Boolean(onSendWhatsApp || onEditAttendee || onDeleteAttendee);
+
+  const [excelLoading, setExcelLoading] = useState(false);
+  const handleDownloadExcel = async () => {
+    try {
+      setExcelLoading(true);
+      await downloadReportExcel(type, filteredAttendees, facilities);
+    } catch (error) {
+      console.error("Excel download:", error);
+      alert("Could not create the Excel file. Please try again.");
+    } finally {
+      setExcelLoading(false);
+    }
+  };
 
   return (
     <>
@@ -244,7 +258,21 @@ function ReportView({
       </div>
 
       <div className="report-print-area rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="report-print-hide" style={{ display: "flex", justifyContent: "flex-end", marginBottom: "8px" }}>
+        <div className="report-print-hide" style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginBottom: "8px" }}>
+          <button
+            type="button"
+            className="btn-success btn-sm"
+            onClick={handleDownloadExcel}
+            disabled={excelLoading || filteredAttendees.length === 0}
+            title={filteredAttendees.length ? "Download the rows shown below as an Excel file" : "No rows to download"}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            {excelLoading ? "Preparing…" : "Download Excel"}
+          </button>
           <button type="button" className="btn-primary btn-sm" onClick={onPrintReport}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="6 9 6 2 18 2 18 9" />
