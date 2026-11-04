@@ -4,7 +4,7 @@
 import { registeredBy, scannedBy } from "./staffLabel";
 
 const WHATSAPP_LABEL = {
-  pending: "Pending",
+  pending: "Not sent",
   sent: "Sent",
   delivered: "Delivered",
   read: "Read",

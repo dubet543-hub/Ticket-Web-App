@@ -4,12 +4,16 @@ import { registeredBy, scannedBy } from "../utils/staffLabel";
 
 // Delivery status reported by Meta for the last ticket sent
 const WHATSAPP_STATUS = {
-  pending: { label: "Pending", color: "#64748b" },
+  // New members start as "pending" until a ticket is actually sent
+  pending: { label: "Not sent", color: "#64748b" },
   sent: { label: "Sent", color: "#2563eb" },
   delivered: { label: "Delivered", color: "#059669" },
   read: { label: "Read", color: "#047857" },
   failed: { label: "Failed", color: "#dc2626" },
 };
+
+// A ticket counts as sent once Meta accepted it (sent/delivered/read) or tried and failed
+const ticketWasSent = (item) => ["sent", "delivered", "read", "failed"].includes(item.whatsappStatus);
 
 function ReportView({
   type,
@@ -471,7 +475,7 @@ function ReportView({
                                 disabled={!item.mobile}
                                 title={item.mobile ? `Send ticket to ${item.mobile}` : "No mobile number"}
                               >
-                                Resend WhatsApp
+                                {ticketWasSent(item) ? "Resend Ticket" : "Send Ticket"}
                               </button>
                             )}
                             {onDeleteAttendee && (
