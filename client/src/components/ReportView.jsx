@@ -24,7 +24,7 @@ function ReportView({
   const [salesPerson, setSalesPerson] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
-  // Name / Reg No / mobile search filters as you type (no Submit needed)
+  // Name / mobile number search filters as you type (no Submit needed)
   const [searchText, setSearchText] = useState("");
   const [appliedFilters, setAppliedFilters] = useState({
     searchFacility: "",
@@ -63,7 +63,6 @@ function ReportView({
       const matchesSearch =
         !query ||
         String(item.name || "").toLowerCase().includes(query) ||
-        String(item.registrationNo || "").toLowerCase().includes(query) ||
         (queryDigits.length > 0 && String(item.mobile || "").replace(/\D/g, "").includes(queryDigits));
 
       return matchesFacility && matchesSalesPerson && fromOk && toOk && matchesSearch;
@@ -182,7 +181,7 @@ function ReportView({
             type="search"
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
-            placeholder="Search by name, Reg No (CPD0001) or mobile number"
+            placeholder="Search by name or mobile number"
             className="form-input"
             autoComplete="off"
           />
