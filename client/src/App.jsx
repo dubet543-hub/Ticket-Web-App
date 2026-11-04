@@ -237,6 +237,13 @@ function App() {
     if (scanInputRef.current) scanInputRef.current.focus();
   }, [activeMenu]);
 
+  // Reports and the dashboard show fresh numbers when opened, including check-ins from other gates
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    if (["member-report", "facility-report", "registration-report", "attendees"].includes(activeMenu)) fetchAttendees();
+    if (activeMenu === "dashboard") fetchDashboardSummary();
+  }, [activeMenu, isAuthenticated]);
+
   // If the active menu is not allowed for the current role, redirect to first allowed
   useEffect(() => {
     if (isAuthenticated && !allowedMenus.includes(activeMenu)) {
@@ -436,8 +443,9 @@ function App() {
       logScan(true, res.data.message, res.data.attendee);
       // Keep the selected gate for the next scan
       setCheckInForm(p => ({ ...p, scanValue: "" }));
-      // Refresh lists in the background so the gate is ready for the next scan straight away
-      void Promise.all([fetchAttendees(), fetchDashboardSummary()]);
+      // Only the small summary refreshes per scan: with many gates scanning, reloading the full
+      // member list each time would load the server. Reports reload when they are opened.
+      void fetchDashboardSummary();
     } catch (err) {
       setCheckInResult({
         type:     "error",
