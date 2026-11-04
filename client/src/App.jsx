@@ -436,7 +436,8 @@ function App() {
       logScan(true, res.data.message, res.data.attendee);
       // Keep the selected gate for the next scan
       setCheckInForm(p => ({ ...p, scanValue: "" }));
-      await Promise.all([fetchAttendees(), fetchDashboardSummary()]);
+      // Refresh lists in the background so the gate is ready for the next scan straight away
+      void Promise.all([fetchAttendees(), fetchDashboardSummary()]);
     } catch (err) {
       setCheckInResult({
         type:     "error",

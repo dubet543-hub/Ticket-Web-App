@@ -1,3 +1,5 @@
+import API from "../api";
+
 const loadImage = (src) =>
   new Promise((resolve, reject) => {
     const img = new Image();
@@ -105,8 +107,11 @@ export const generateTicketImage = async (attendee, type = "image/png") => {
   ctx.fillStyle = "#ffffff";
   roundRect(ctx, boxX, boxY, box, box, 14);
   ctx.fill();
-  if (attendee.qrCode) {
-    const qr = await loadImage(attendee.qrCode);
+  // Member lists arrive without the QR image, so fetch it for this one ticket
+  const qrCode = attendee.qrCode ||
+    (attendee._id ? (await API.get(`/attendees/${attendee._id}`)).data?.qrCode : null);
+  if (qrCode) {
+    const qr = await loadImage(qrCode);
     const size = box - 28;
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(qr, boxX + 14, boxY + 14, size, size);

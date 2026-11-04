@@ -16,9 +16,12 @@ router.get("/attendees", async (req, res) => {
       filter.isCheckedIn = false;
     }
 
+    // The QR image (~5 KB each) is left out: lists don't show it, and the ticket fetches it when drawn
     const attendees = await Attendee.find(filter)
+      .select("-qrCode")
       .populate("category")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
 
     const totalAttendees = attendees.length;
     const checkedInCount = attendees.filter((item) => item.isCheckedIn).length;
