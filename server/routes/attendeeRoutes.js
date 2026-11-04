@@ -81,6 +81,8 @@ router.post("/", async (req, res) => {
       qrCode,
       whatsappNo: mobile,
       whatsappStatus: "pending",
+      // The login that registered this member (shown as "Entry By" in reports)
+      createdBy: req.user?._id,
     });
 
     // Two members saved at the same moment can get the same number; retry with the next one
@@ -216,6 +218,7 @@ router.put("/:id", async (req, res) => {
 
     attendee.amount = toAmount(amount, attendee.amount);
     attendee.coverAmount = toAmount(coverAmount, attendee.coverAmount);
+    attendee.lastModifiedBy = req.user?._id;
 
     const currentCategory = foundCategory || (await Category.findById(attendee.category));
     attendee.qrCode = await generateAttendeeQRCode(attendee, currentCategory?.categoryName);

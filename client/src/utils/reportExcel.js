@@ -1,6 +1,8 @@
 // Excel (.xlsx) download for the report pages. Mobile numbers are written as text so Excel
 // doesn't turn them into 9.88E+09, and amounts/dates as real numbers/dates so they can be summed.
 
+import { registeredBy, scannedBy } from "./staffLabel";
+
 const WHATSAPP_LABEL = {
   pending: "Pending",
   sent: "Sent",
@@ -31,12 +33,14 @@ const REPORTS = {
     title: "Member Report",
     columns: [
       ["SN", 6], ["Reg No", 12], ["Name", 26], ["Category", 14], ["Mobile", 14], ["Ticket Price", 12], ["Cover Price", 12], ["Registered On", 20],
-      ["Checked In", 11], ["Checked In At", 20], ["WhatsApp", 11], ["WhatsApp Error", 40],
+      ["Checked In", 11], ["Checked In At", 20], ["Registered By", 20], ["Scanned By", 20],
+      ["WhatsApp", 11], ["WhatsApp Error", 40],
     ],
     row: (item, index) => [
       amount(index + 1), text(item.registrationNo), text(item.name?.toUpperCase()), text(item.category?.categoryName),
       text(item.mobile), amount(item.amount), amount(item.coverAmount),
       date(item.createdAt), text(item.isCheckedIn ? "Yes" : "No"), date(item.checkedInAt),
+      text(registeredBy(item)), text(scannedBy(item)),
       text(WHATSAPP_LABEL[item.whatsappStatus] || "Not sent"),
       text(item.whatsappStatus === "failed" ? item.whatsappError : ""),
     ],
@@ -50,7 +54,7 @@ const REPORTS = {
     row: (item, index) => [
       amount(index + 1), text(item.registrationNo), text(item.name?.toUpperCase()), text(item.category?.categoryName),
       amount(item.amount), amount(item.coverAmount), text(item.mobile),
-      text(item.createdBy?.name || "Centre Point Hotel"), date(item.createdAt),
+      text(registeredBy(item)), date(item.createdAt),
     ],
     // Total row under the Ticket Amount and Cover Amount columns
     total: (items) => [
@@ -62,11 +66,12 @@ const REPORTS = {
   facility: {
     title: "Facility Report",
     columns: [
-      ["SN", 6], ["Reg No", 12], ["Category", 14], ["Name", 26], ["Gate", 16], ["Checked In At", 20], ["Mobile", 14],
+      ["SN", 6], ["Reg No", 12], ["Category", 14], ["Name", 26], ["Gate", 16], ["Checked In At", 20],
+      ["Scanned By", 20], ["Mobile", 14],
     ],
     row: (item, index, facilities) => [
       amount(index + 1), text(item.registrationNo), text(item.category?.categoryName), text(item.name?.toUpperCase()),
-      text(lastGate(item, facilities)), date(item.checkedInAt), text(item.mobile),
+      text(lastGate(item, facilities)), date(item.checkedInAt), text(scannedBy(item)), text(item.mobile),
     ],
   },
 };

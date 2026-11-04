@@ -346,7 +346,10 @@ function CheckInResult({ result, onDismiss }) {
   const kind = resultKind(result);
   const attendee = result.attendee;
   const entryType = attendee ? getEntryType(attendee) : null;
-  const lastGate = attendee?.checkInHistory?.at(-1)?.facility?.facilityName;
+  const lastEntry = attendee?.checkInHistory?.at(-1);
+  const lastGate = lastEntry?.facility?.facilityName;
+  // Who let the guest in first: helps staff when a ticket is shown twice
+  const lastScanner = lastEntry?.checkedInBy && lastEntry.checkedInBy !== "system" ? lastEntry.checkedInBy : "";
 
   return (
     <div className={`ci-result ${kind}`} role="status" aria-live="assertive">
@@ -398,6 +401,7 @@ function CheckInResult({ result, onDismiss }) {
               <div className="ci-detail-value">
                 {formatDateTime(attendee.checkedInAt)}
                 {lastGate ? ` · ${lastGate}` : ""}
+                {lastScanner ? ` · by ${lastScanner}` : ""}
               </div>
             </div>
           </div>

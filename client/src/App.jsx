@@ -420,7 +420,6 @@ function App() {
         scanValue,
         facility:    checkInForm.facility,
         notes:       "",
-        checkedInBy: "operator",
       });
       setCheckInResult({ type: "success", message: res.data.message, attendee: res.data.attendee });
       logScan(true, res.data.message, res.data.attendee);

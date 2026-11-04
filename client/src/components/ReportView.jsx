@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { downloadReportExcel } from "../utils/reportExcel";
+import { registeredBy, scannedBy } from "../utils/staffLabel";
 
 // Delivery status reported by Meta for the last ticket sent
 const WHATSAPP_STATUS = {
@@ -331,7 +332,7 @@ function ReportView({
                   <th>Notes</th>
                   <th>Label</th>
                   <th>Date</th>
-                  <th>Entry By</th>
+                  <th>Scanned By</th>
                   <th>Sign</th>
                 </tr>
               </thead>
@@ -349,8 +350,8 @@ function ReportView({
                       <td>{item.name?.toUpperCase() || "-"}</td>
                       <td>-</td>
                       <td>-</td>
-                      <td>{formatDate(item.checkedInAt)}</td>
-                      <td>{item.checkedInBy || "Centre Point Hotel"}</td>
+                      <td>{formatDateTime(item.checkedInAt)}</td>
+                      <td>{scannedBy(item)}</td>
                       <td>-</td>
                     </tr>
                   ))
@@ -392,7 +393,7 @@ function ReportView({
                       <td>{item.amount || 0}</td>
                       <td>{item.coverAmount || 0}</td>
                       <td>{item.mobile || "-"}</td>
-                      <td>{item.createdBy?.name || "Centre Point Hotel"}</td>
+                      <td>{registeredBy(item)}</td>
                       <td>{formatDate(item.createdAt)}</td>
                       {onDeleteAttendee && (
                         <td className="report-print-hide">
@@ -421,6 +422,8 @@ function ReportView({
                   <th>Mobile</th>
                   <th>Date</th>
                   <th>Last Updated</th>
+                  <th>Registered By</th>
+                  <th>Scanned By</th>
                   <th>WhatsApp</th>
                   {hasMemberActions && <th className="report-print-hide">Actions</th>}
                 </tr>
@@ -428,7 +431,7 @@ function ReportView({
               <tbody>
                 {filteredAttendees.length === 0 ? (
                   <tr>
-                    <td colSpan={hasMemberActions ? 9 : 8} className="py-6 text-center text-slate-500">No report data found.</td>
+                    <td colSpan={hasMemberActions ? 11 : 10} className="py-6 text-center text-slate-500">No report data found.</td>
                   </tr>
                 ) : (
                   filteredAttendees.map((item, index) => (
@@ -440,6 +443,8 @@ function ReportView({
                       <td>{item.mobile || "-"}</td>
                       <td>{formatDate(item.createdAt)}</td>
                       <td>{formatDateTime(item.updatedAt)}</td>
+                      <td>{registeredBy(item)}</td>
+                      <td>{scannedBy(item)}</td>
                       <td>
                         <span style={{ fontWeight: 600, color: WHATSAPP_STATUS[item.whatsappStatus]?.color || "#64748b" }}>
                           {WHATSAPP_STATUS[item.whatsappStatus]?.label || "Not sent"}

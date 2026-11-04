@@ -49,4 +49,8 @@ const requireAdmin = (req, res, next) => {
   next();
 };
 
-module.exports = { issueToken, requireAuth, requireAdmin };
+// How a login is named in reports: "Gate 1 (gate1)"
+const userLabel = (user) =>
+  user ? (user.username && user.username !== user.name ? `${user.name} (${user.username})` : user.name) : "";
+
+module.exports = { issueToken, requireAuth, requireAdmin, userLabel };

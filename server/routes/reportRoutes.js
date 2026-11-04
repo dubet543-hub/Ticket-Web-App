@@ -20,6 +20,7 @@ router.get("/attendees", async (req, res) => {
     const attendees = await Attendee.find(filter)
       .select("-qrCode")
       .populate("category")
+      .populate("createdBy", "name username")
       .sort({ createdAt: -1 })
       .lean();
 

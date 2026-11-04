@@ -4,11 +4,12 @@ const router = express.Router();
 const Attendee = require("../models/Attendee");
 const Facility = require("../models/Facility");
 const { parseScanValue } = require("../utils/qrGenerator");
+const { userLabel } = require("../middleware/auth");
 
 // Scan / check-in by qrToken (bare or inside the full QR payload) or a typed registrationNo
 router.post("/", async (req, res) => {
   try {
-    const { scanValue, facility, notes, checkedInBy } = req.body;
+    const { scanValue, facility, notes } = req.body;
 
     if (!scanValue) {
       return res.status(400).json({
@@ -77,7 +78,8 @@ router.post("/", async (req, res) => {
             facility: facilityId,
             checkedInAt: now,
             notes: notes || "",
-            checkedInBy: checkedInBy || "system",
+            // The login that scanned the ticket, from its session (not from the request body)
+            checkedInBy: userLabel(req.user) || "system",
           },
         },
       },
