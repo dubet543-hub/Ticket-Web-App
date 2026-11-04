@@ -102,7 +102,7 @@ function SectionLabel({ children }) {
 }
 
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
-export default function Dashboard({ dashboardStats = {}, onPrintReport, onResetMembers }) {
+export default function Dashboard({ dashboardStats = {}, onPrintReport }) {
   const {
     totalAttendees = 0,
     checkedInCount = 0,
@@ -214,13 +214,6 @@ export default function Dashboard({ dashboardStats = {}, onPrintReport, onResetM
           box-shadow: 0 6px 20px rgba(26,143,132,0.36);
         }
         .print-btn:active { transform: translateY(0); opacity: 0.9; }
-        .reset-btn {
-          display: inline-flex; align-items: center; gap: 6px;
-          background: #fff; color: #b91c1c; border: 1.5px solid #fecaca;
-          border-radius: 12px; padding: 10px 16px; font-size: 13px; font-weight: 600;
-          font-family: 'DM Sans', sans-serif; cursor: pointer;
-        }
-        .reset-btn:hover { background: #fef2f2; border-color: #f87171; }
 
         .live-dot {
           display: inline-block;
@@ -261,7 +254,6 @@ export default function Dashboard({ dashboardStats = {}, onPrintReport, onResetM
 
         @media print {
           .print-btn, .dashboard-root { box-shadow: none !important; }
-          .reset-btn { display: none !important; }
           .metric-card, .card { break-inside: avoid; box-shadow: none !important; }
           .live-dot { display: none !important; }
           /* The printed page is narrow; keep the desktop columns */
@@ -311,15 +303,6 @@ export default function Dashboard({ dashboardStats = {}, onPrintReport, onResetM
                   Real-time ticketing, check-in &amp; communication metrics.
                 </p>
               </div>
-              <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
-              {onResetMembers && (
-                <button className="reset-btn" onClick={onResetMembers} title="Admin only: delete all members (test data)">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/>
-                  </svg>
-                  Reset all members
-                </button>
-              )}
               <button className="print-btn" onClick={onPrintReport}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
@@ -327,7 +310,6 @@ export default function Dashboard({ dashboardStats = {}, onPrintReport, onResetM
                 </svg>
                 Print Report
               </button>
-              </div>
             </div>
 
             {/* Progress Bar */}

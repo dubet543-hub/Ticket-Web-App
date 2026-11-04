@@ -7,7 +7,6 @@ const Attendee = require("../models/Attendee");
 const Category = require("../models/Category");
 const { sendWhatsAppTicket } = require("../utils/whatsappService");
 const { generateAttendeeQRCode, REGISTRATION_PREFIX } = require("../utils/qrGenerator");
-const { requireAdmin } = require("../middleware/auth");
 
 // Helper: next registration number after the highest one in use
 // (not a count, so deleted members never cause a repeated number)
@@ -250,24 +249,6 @@ router.put("/:id", async (req, res) => {
 });
 
 
-
-// =====================
-// DELETE ALL ATTENDEES (admin only)
-// =====================
-// Clears test data so ticket numbers restart at CPD0001; categories, gates and logins stay.
-// The phrase guards against a stray request wiping real bookings.
-router.delete("/", requireAdmin, async (req, res) => {
-  try {
-    if (req.body?.confirm !== "DELETE ALL") {
-      return res.status(400).json({ message: 'Type "DELETE ALL" to confirm' });
-    }
-    const { deletedCount } = await Attendee.deleteMany({});
-    console.log(`All members deleted by ${req.user?.username}: ${deletedCount}`);
-    res.status(200).json({ message: `Deleted ${deletedCount} members`, deletedCount });
-  } catch (error) {
-    res.status(500).json({ message: "Error deleting members", error: error.message });
-  }
-});
 
 // =====================
 // DELETE ATTENDEE
