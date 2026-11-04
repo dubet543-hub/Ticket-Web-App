@@ -315,6 +315,25 @@ function App() {
     }
   };
 
+  // Admin only: wipes all members (test data) so ticket numbers restart at CPD0001
+  const handleResetMembers = async () => {
+    const count = dashboardStats.totalAttendees || 0;
+    const typed = window.prompt(
+      `This permanently deletes ALL ${count} members, their tickets and check-ins.\n` +
+      "Categories, gates and logins are kept. Ticket numbers restart at CPD0001.\n\n" +
+      "Type DELETE ALL to confirm:"
+    );
+    if (typed === null) return;
+    if (typed.trim() !== "DELETE ALL") { alert("Not deleted: the text did not match DELETE ALL."); return; }
+    try {
+      const res = await API.delete("/attendees", { data: { confirm: "DELETE ALL" } });
+      alert(`${res.data.message}. The next member will be CPD0001.`);
+      await Promise.all([fetchAttendees(), fetchDashboardSummary(), fetchNextRegistrationNo()]);
+    } catch (err) {
+      alert(err?.response?.data?.message || "Failed to delete members");
+    }
+  };
+
   // ── Submit handlers ─────────────────────────────────────────────────────────
   const handleCategorySubmit = async (e) => {
     e.preventDefault();
@@ -735,6 +754,7 @@ function App() {
                   <Dashboard
                     dashboardStats={dashboardStats}
                     onPrintReport={handlePrintReport}
+                    onResetMembers={currentRole === "Admin" ? handleResetMembers : null}
                   />
                 )}
 
