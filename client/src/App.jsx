@@ -300,19 +300,6 @@ function App() {
     }
   };
 
-  const handleDeleteAttendee = async (attendeeId, attendeeName) => {
-    if (!window.confirm(`Are you sure you want to delete ${attendeeName}?`)) return;
-    try {
-      await API.delete(`/attendees/${attendeeId}`);
-      if (editingAttendeeId === attendeeId) resetAttendeeForm();
-      await Promise.all([fetchAttendees(), fetchDashboardSummary()]);
-      alert("Attendee deleted successfully");
-    } catch (err) {
-      console.error("handleDeleteAttendee:", err);
-      alert(err?.response?.data?.message || "Failed to delete attendee");
-    }
-  };
-
   // ── Submit handlers ─────────────────────────────────────────────────────────
   const handleCategorySubmit = async (e) => {
     e.preventDefault();
@@ -808,7 +795,6 @@ function App() {
                     onSendWhatsApp={handleSendWhatsApp}
                     onResendWhatsApp={handleResendWhatsApp}
                     onEditAttendee={handleEditAttendee}
-                    onDeleteAttendee={handleDeleteAttendee}
                     onFetchAttendees={fetchAttendees}
                   />
                 )}
@@ -830,7 +816,6 @@ function App() {
                     facilities={facilities}
                     users={users}
                     onPrintReport={handlePrintReport}
-                    onDeleteAttendee={handleDeleteAttendee}
                   />
                 )}
 
