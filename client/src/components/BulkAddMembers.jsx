@@ -52,12 +52,14 @@ function BulkAddMembers({ categories = [], onAdded }) {
         setNotice(`No names or 10-digit mobile numbers found in ${file.name}.`);
         return;
       }
-      // A sheet named like a category ("Female") gives its members that category
-      const categoryOfSheet = (sheet) =>
-        categories.find((item) => sheet && item.categoryName?.trim().toLowerCase() === sheet.trim().toLowerCase())?._id || "";
+      // A Category/Type column, or else a sheet named like a category ("Female"), fills the category
+      const categoryNamed = (value) =>
+        categories.find((item) => value && item.categoryName?.trim().toLowerCase() === value.trim().toLowerCase())?._id || "";
       setRows((current) => [
         ...current.filter((row) => !isBlank(row)),
-        ...members.map(({ name, mobile, sheet }) => ({ ...emptyRow(), name, mobile, category: categoryOfSheet(sheet), imported: true })),
+        ...members.map(({ name, mobile, sheet, categoryName }) => ({
+          ...emptyRow(), name, mobile, category: categoryNamed(categoryName) || categoryNamed(sheet), imported: true,
+        })),
       ]);
       setShowErrors(false);
       const withoutNumber = members.filter((member) => !member.mobile).length;
