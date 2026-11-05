@@ -141,18 +141,44 @@ function ReportView({
 
   // Members in the rows shown (search applies) who have never been sent a ticket
   const notSentMembers = filteredAttendees.filter((item) => item.mobile && !ticketWasSent(item));
+  const canBulkSend = type === "member" && Boolean(onSendAllTickets);
   const [bulkProgress, setBulkProgress] = useState(null);
-  const handleSendAll = async () => {
-    const minutes = Math.ceil((notSentMembers.length * 3) / 60);
+
+  // Ticked rows for "Send to selected" (also resends to members who already have a ticket)
+  const [selectedIds, setSelectedIds] = useState(() => new Set());
+  const selectableMembers = filteredAttendees.filter((item) => item.mobile);
+  const selectedMembers = selectableMembers.filter((item) => selectedIds.has(item._id));
+  const allSelected = selectableMembers.length > 0 && selectedMembers.length === selectableMembers.length;
+  const toggleSelected = (id) =>
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  const toggleAll = () => setSelectedIds(allSelected ? new Set() : new Set(selectableMembers.map((item) => item._id)));
+
+  const sendTickets = async (members, question) => {
+    const minutes = Math.ceil((members.length * 3) / 60);
     if (!window.confirm(
-      `Send tickets on WhatsApp to ${notSentMembers.length} members who have not received one?\n\n` +
-      `This takes about ${minutes} minute${minutes === 1 ? "" : "s"}. Keep this tab open until it finishes.`
+      `${question}\n\nThis takes about ${minutes} minute${minutes === 1 ? "" : "s"}. Keep this tab open until it finishes.`
     )) return;
     try {
-      await onSendAllTickets(notSentMembers, (done, total) => setBulkProgress(`${done} / ${total}`));
+      await onSendAllTickets(members, (done, total) => setBulkProgress(`${done} / ${total}`));
+      setSelectedIds(new Set());
     } finally {
       setBulkProgress(null);
     }
+  };
+  const handleSendAll = () =>
+    sendTickets(notSentMembers, `Send tickets on WhatsApp to ${notSentMembers.length} members who have not received one?`);
+  const handleSendSelected = () => {
+    const resends = selectedMembers.filter(ticketWasSent).length;
+    sendTickets(
+      selectedMembers,
+      `Send tickets on WhatsApp to the ${selectedMembers.length} selected members?` +
+        (resends ? `\n${resends} of them already received a ticket and will get it again.` : "")
+    );
   };
 
   return (
@@ -307,7 +333,18 @@ function ReportView({
 
       <div className="report-print-area rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
         <div className="report-print-hide" style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginBottom: "8px" }}>
-          {type === "member" && onSendAllTickets && (
+          {canBulkSend && (
+            <button
+              type="button"
+              className="btn-success btn-sm"
+              onClick={handleSendSelected}
+              disabled={Boolean(bulkProgress) || selectedMembers.length === 0}
+              title={selectedMembers.length ? "Send tickets to the ticked members" : "Tick members in the table first"}
+            >
+              {`Send to selected (${selectedMembers.length})`}
+            </button>
+          )}
+          {canBulkSend && (
             <button
               type="button"
               className="btn-success btn-sm"
@@ -447,6 +484,11 @@ function ReportView({
             <table className="w-full">
               <thead>
                 <tr>
+                  {canBulkSend && (
+                    <th className="report-print-hide">
+                      <input type="checkbox" checked={allSelected} onChange={toggleAll} disabled={Boolean(bulkProgress)} title="Select all members shown" />
+                    </th>
+                  )}
                   <th>SN</th>
                   <th>User ID</th>
                   <th>Name</th>
@@ -463,11 +505,21 @@ function ReportView({
               <tbody>
                 {filteredAttendees.length === 0 ? (
                   <tr>
-                    <td colSpan={hasMemberActions ? 11 : 10} className="py-6 text-center text-slate-500">No report data found.</td>
+                    <td colSpan={10 + (hasMemberActions ? 1 : 0) + (canBulkSend ? 1 : 0)} className="py-6 text-center text-slate-500">No report data found.</td>
                   </tr>
                 ) : (
                   filteredAttendees.map((item, index) => (
                     <tr key={item._id}>
+                      {canBulkSend && (
+                        <td className="report-print-hide">
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(item._id)}
+                            onChange={() => toggleSelected(item._id)}
+                            disabled={!item.mobile || Boolean(bulkProgress)}
+                          />
+                        </td>
+                      )}
                       <td>{index + 1}</td>
                       <td>{item.registrationNo || "-"}</td>
                       <td>{item.name?.toUpperCase() || "-"}</td>
