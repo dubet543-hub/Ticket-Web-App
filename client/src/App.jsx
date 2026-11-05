@@ -583,6 +583,8 @@ function App() {
     let sent = 0;
     const failed = [];
     let failuresInARow = 0;
+    // Keep the screen on: a sleeping computer pauses the sending until it wakes up
+    const wakeLock = await navigator.wakeLock?.request("screen").catch(() => null);
 
     for (const [index, member] of members.entries()) {
       onProgress(index + 1, members.length);
@@ -603,6 +605,7 @@ function App() {
       lastSentTo[member.mobile] = Date.now();
       if (failuresInARow >= 3) break;
     }
+    wakeLock?.release().catch(() => {});
 
     await Promise.all([fetchAttendees(), fetchDashboardSummary()]);
     const stopped = failuresInARow >= 3 ? "\n\nStopped after 3 failures in a row. Fix the problem below, then click again to send the rest." : "";
