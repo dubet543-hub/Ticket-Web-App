@@ -172,6 +172,45 @@ router.post("/bulk", async (req, res) => {
   res.status(failed.length && !added.length ? 400 : 201).json({ added, failed });
 });
 
+// =====================
+// RENUMBER (close gaps left by deleted members)
+// Members keep their order; each one after a gap moves down to the next free number and gets a
+// new QR image. A member already sent a ticket or checked in keeps the number printed on it,
+// so only members after the last of those are renumbered.
+// =====================
+router.post("/renumber", requireMemberDelete, async (req, res) => {
+  try {
+    const pattern = new RegExp(`^${REGISTRATION_PREFIX}(\\d+)$`);
+    const toNumber = (registrationNo) => Number(registrationNo.match(pattern)[1]);
+    const members = (await Attendee.find({ registrationNo: pattern }).populate("category"))
+      .sort((a, b) => toNumber(a.registrationNo) - toNumber(b.registrationNo));
+
+    const isLocked = (member) =>
+      member.isCheckedIn || member.whatsappSent || ["sent", "delivered", "read", "failed"].includes(member.whatsappStatus);
+    const lastLocked = members.reduce((last, member, index) => (isLocked(member) ? index : last), -1);
+    let nextNumber = lastLocked >= 0 ? toNumber(members[lastLocked].registrationNo) + 1 : 1;
+
+    // In ascending order each new number is free: it is never above the member's own number
+    const changed = [];
+    for (const member of members.slice(lastLocked + 1)) {
+      const registrationNo = `${REGISTRATION_PREFIX}${String(nextNumber++).padStart(4, "0")}`;
+      if (member.registrationNo === registrationNo) continue;
+      changed.push({ from: member.registrationNo, to: registrationNo, name: member.name });
+      member.registrationNo = registrationNo;
+      member.qrCode = await generateAttendeeQRCode(member, member.category?.categoryName);
+      member.lastModifiedBy = req.user?._id;
+      await member.save();
+    }
+
+    res.json({
+      changed,
+      keptFrom: lastLocked >= 0 ? members[lastLocked].registrationNo : null,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Error renumbering members", error: error.message });
+  }
+});
+
 
 
 // =====================

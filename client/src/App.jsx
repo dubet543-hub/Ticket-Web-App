@@ -630,6 +630,27 @@ function App() {
     }
   };
 
+  // Closes gaps in CPD numbers (left by deleted members) and redraws the moved members' QR codes
+  const handleRenumberMembers = async (missing) => {
+    const shown = missing.slice(0, 10).join(", ") + (missing.length > 10 ? ` and ${missing.length - 10} more` : "");
+    if (!window.confirm(
+      `These ticket numbers are not used: ${shown}.\n\n` +
+      "Renumber the members after them so the numbers run without gaps (order stays the same)? " +
+      "Their QR codes are made again with the new number.\n\n" +
+      "Members already sent a ticket or checked in keep their number."
+    )) return;
+    try {
+      const res = await API.post("/attendees/renumber");
+      const { changed, keptFrom } = res.data;
+      await Promise.all([fetchAttendees(), fetchNextRegistrationNo()]);
+      const range = changed.length ? `\n${changed[0].from} → ${changed[0].to} … ${changed[changed.length - 1].from} → ${changed[changed.length - 1].to}` : "";
+      const kept = keptFrom ? `\n\nNumbers up to ${keptFrom} were kept (tickets already sent or used).` : "";
+      alert(`Renumbered ${changed.length} members.${range}${kept}`);
+    } catch (err) {
+      alert(err?.response?.data?.message || "Failed to renumber members");
+    }
+  };
+
   const handleResendWhatsApp = async (attendeeId) => {
     try {
       await API.post(`/attendees/${attendeeId}/resend-whatsapp`);
@@ -874,6 +895,7 @@ function App() {
                     onResendWhatsApp={handleResendWhatsApp}
                     onEditAttendee={handleEditAttendee}
                     onDeleteAttendee={currentUser?.canDeleteMembers ? handleDeleteAttendee : undefined}
+                    onRenumberMembers={currentUser?.canDeleteMembers ? handleRenumberMembers : undefined}
                     onFetchAttendees={fetchAttendees}
                   />
                 )}

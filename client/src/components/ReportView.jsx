@@ -25,6 +25,7 @@ function ReportView({
   onSendAllTickets,
   onEditAttendee,
   onDeleteAttendee,
+  onRenumberMembers,
 }) {
   const [searchFacility, setSearchFacility] = useState("");
   const [salesPerson, setSalesPerson] = useState("");
@@ -157,6 +158,28 @@ function ReportView({
       return next;
     });
   const toggleAll = () => setSelectedIds(allSelected ? new Set() : new Set(selectableMembers.map((item) => item._id)));
+
+  // CPD numbers not in use below the highest one (gaps left by deleted members)
+  const missingNumbers = useMemo(() => {
+    const numbers = new Set(
+      attendees.map((item) => String(item.registrationNo || "").match(/^([A-Z]+)(\d+)$/)).filter(Boolean).map((match) => Number(match[2]))
+    );
+    const prefix = String(attendees.find((item) => /^[A-Z]+\d+$/.test(item.registrationNo || ""))?.registrationNo || "CPD").replace(/\d+$/, "");
+    const missing = [];
+    for (let number = 1; number < Math.max(0, ...numbers); number++) {
+      if (!numbers.has(number)) missing.push(`${prefix}${String(number).padStart(4, "0")}`);
+    }
+    return missing;
+  }, [attendees]);
+  const [renumbering, setRenumbering] = useState(false);
+  const handleRenumber = async () => {
+    setRenumbering(true);
+    try {
+      await onRenumberMembers(missingNumbers);
+    } finally {
+      setRenumbering(false);
+    }
+  };
 
   const sendTickets = async (members, question) => {
     const minutes = Math.ceil((members.length * 3) / 60);
@@ -333,6 +356,17 @@ function ReportView({
 
       <div className="report-print-area rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
         <div className="report-print-hide" style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginBottom: "8px" }}>
+          {type === "member" && onRenumberMembers && missingNumbers.length > 0 && (
+            <button
+              type="button"
+              className="btn-secondary btn-sm"
+              onClick={handleRenumber}
+              disabled={renumbering || Boolean(bulkProgress)}
+              title="Renumber members so ticket numbers run without gaps; their QR codes are made again"
+            >
+              {renumbering ? "Renumbering…" : `Fix ticket numbers (${missingNumbers.length} missing)`}
+            </button>
+          )}
           {canBulkSend && (
             <button
               type="button"
