@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import API from "../api";
+import { readMembersFromFile } from "../utils/memberImport";
 
 // Bulk add: several member rows on one form, saved together with ticket numbers in row order.
 // Only members are saved; tickets are sent later from Member Report.
-// Uses the .af-* styles of AttendeeForm, which is on the same page.
+// Uses the .af-* styles of AttendeeForm, which is on the same page; its "Upload Excel" button
+// opens this form's file picker (#bulk-excel-input).
 
 const emptyRow = () => ({ key: crypto.randomUUID(), name: "", mobile: "", category: "", amount: "", coverAmount: "" });
 
@@ -21,6 +23,9 @@ function BulkAddMembers({ categories = [], onAdded }) {
   const [saving, setSaving] = useState(false);
   const [showErrors, setShowErrors] = useState(false);
   const [result, setResult] = useState(null);
+  const [notice, setNotice] = useState("");
+  const [allValues, setAllValues] = useState({ category: "", amount: "", coverAmount: "" });
+  const rootRef = useRef(null);
 
   // Rows left completely empty are ignored
   const filledRows = rows.filter((row) => !isBlank(row));
@@ -34,6 +39,36 @@ function BulkAddMembers({ categories = [], onAdded }) {
   const addRow = () => setRows((current) => [...current, emptyRow()]);
   const removeRow = (key) => setRows((current) => (current.length > 1 ? current.filter((row) => row.key !== key) : current));
 
+  // Upload: names and mobiles from the file become rows; category and prices are chosen here
+  const handleFile = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setResult(null);
+    rootRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    try {
+      const members = await readMembersFromFile(file);
+      if (!members.length) {
+        setNotice(`No names or 10-digit mobile numbers found in ${file.name}.`);
+        return;
+      }
+      setRows((current) => [
+        ...current.filter((row) => !isBlank(row)),
+        ...members.map((member) => ({ ...emptyRow(), ...member })),
+      ]);
+      setShowErrors(false);
+      setNotice(`Loaded ${members.length} members from ${file.name}. Choose the category and prices (use "Set for all rows" below), check the list, then click Save All. Nothing is saved yet.`);
+    } catch (err) {
+      setNotice(err.message || "Could not read this file.");
+    }
+  };
+
+  const applyToAll = () => {
+    const values = Object.fromEntries(Object.entries(allValues).filter(([, value]) => value !== ""));
+    if (!Object.keys(values).length) { alert("Choose a category or enter a price first"); return; }
+    setRows((current) => current.map((row) => (isBlank(row) ? row : { ...row, ...values })));
+  };
+
   const handleSaveAll = async () => {
     if (!filledRows.length) { alert("Fill in at least one member"); return; }
     if (filledRows.some(rowError)) { setShowErrors(true); return; }
@@ -45,6 +80,7 @@ function BulkAddMembers({ categories = [], onAdded }) {
         members: filledRows.map(({ name, mobile, category, amount, coverAmount }) => ({ name, mobile, category, amount, coverAmount })),
       });
       setResult(res.data);
+      setNotice("");
       // Keep only the rows that failed, so saving again never adds a member twice
       const failedRows = (res.data.failed || []).map((item) => filledRows[item.row - 1]).filter(Boolean);
       setRows(failedRows.length ? failedRows : [emptyRow(), emptyRow(), emptyRow()]);
@@ -59,7 +95,7 @@ function BulkAddMembers({ categories = [], onAdded }) {
   };
 
   return (
-    <div className="af-root" style={{ marginTop: 20 }}>
+    <div className="af-root" style={{ marginTop: 20, scrollMarginTop: 20 }} ref={rootRef}>
       <style>{`
         .ba-row { display: grid; grid-template-columns: 28px 1.4fr 1.1fr 1fr 0.8fr 0.8fr 36px; gap: 10px; align-items: start; }
         .ba-head { font-family: 'DM Mono', monospace; font-size: 10.5px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: #475569; }
@@ -69,11 +105,16 @@ function BulkAddMembers({ categories = [], onAdded }) {
         .ba-remove:hover:not(:disabled) { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
         .ba-add { align-self: flex-start; background: none; border: 1.5px dashed #9fc9c2; border-radius: 10px; padding: 9px 16px; color: #1a8f84; font-weight: 700; font-size: 13px; cursor: pointer; }
         .ba-add:hover { background: #f0faf7; }
+        .ba-all { display: grid; grid-template-columns: auto 1fr 0.8fr 0.8fr auto; gap: 10px; align-items: center; background: #f0faf7; border: 1.5px dashed #9fc9c2; border-radius: 13px; padding: 12px 14px; }
+        .ba-all-label { font-family: 'DM Mono', monospace; font-size: 10.5px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: #3d7d72; }
+        .ba-notice { font-size: 13.5px; line-height: 1.5; color: #1f4f47; background: #f0faf7; border-radius: 10px; padding: 10px 14px; }
         @media (max-width: 760px) {
           .ba-row { grid-template-columns: 1fr 1fr; }
           .ba-row .ba-num, .ba-head-row { display: none; }
           .ba-row { padding-bottom: 12px; border-bottom: 1px dashed #dde9f2; }
           .ba-error { grid-column: 1 / -1; }
+          .ba-all { grid-template-columns: 1fr 1fr; }
+          .ba-all-label { grid-column: 1 / -1; }
         }
       `}</style>
       <div className="af-card">
@@ -88,9 +129,42 @@ function BulkAddMembers({ categories = [], onAdded }) {
                 Tickets are not sent: send them later from Member Report.
               </p>
             </div>
+            <div className="af-header-side">
+              <label htmlFor="bulk-excel-input" className="af-cancel-btn" title="Fill the rows with the names and mobile numbers in an Excel or CSV file">
+                Upload Excel
+              </label>
+              <input id="bulk-excel-input" type="file" accept=".xlsx,.csv" onChange={handleFile} style={{ display: "none" }} />
+            </div>
           </div>
 
           <div className="af-form-stack" style={{ gap: 12 }}>
+            {notice && <p className="ba-notice">{notice}</p>}
+
+            {filledRows.length > 1 && (
+              <div className="ba-all">
+                <span className="ba-all-label">Set for all rows</span>
+                <div className="af-select-wrap">
+                  <select className="af-select" value={allValues.category} onChange={(e) => setAllValues((p) => ({ ...p, category: e.target.value }))}>
+                    <option value="">Category</option>
+                    {categories.map((item) => (
+                      <option key={item._id} value={item._id}>{item.categoryName}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="af-input-wrap">
+                  <span className="af-prefix">₹</span>
+                  <input type="number" min="0" className="af-input has-prefix" placeholder="Ticket" value={allValues.amount}
+                    onChange={(e) => setAllValues((p) => ({ ...p, amount: e.target.value }))} />
+                </div>
+                <div className="af-input-wrap">
+                  <span className="af-prefix">₹</span>
+                  <input type="number" min="0" className="af-input has-prefix" placeholder="Cover" value={allValues.coverAmount}
+                    onChange={(e) => setAllValues((p) => ({ ...p, coverAmount: e.target.value }))} />
+                </div>
+                <button type="button" className="ba-add" style={{ alignSelf: "center" }} onClick={applyToAll}>Apply to all</button>
+              </div>
+            )}
+
             <div className="ba-row ba-head-row">
               <span />
               <span className="ba-head">Name</span>
