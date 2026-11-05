@@ -21,6 +21,15 @@ const generateRegistrationNo = async () => {
   return `${REGISTRATION_PREFIX}${String(highest + 1).padStart(4, "0")}`;
 };
 
+// Helper: "+91 98765 43210" / "098765-43210" -> "9876543210"; anything else is kept as typed
+const toMobile = (value) => {
+  const typed = String(value ?? "").trim();
+  const digits = typed.replace(/\D/g, "");
+  if (digits.length === 12 && digits.startsWith("91")) return digits.slice(2);
+  if (digits.length === 11 && digits.startsWith("0")) return digits.slice(1);
+  return digits.length === 10 ? digits : typed;
+};
+
 // Helper: price from the form, or the fallback when left blank
 const toAmount = (value, fallback = 0) =>
   value === undefined || value === null || value === "" ? fallback : Number(value) || 0;
@@ -38,7 +47,7 @@ const httpError = (status, message) => Object.assign(new Error(message), { statu
 const createAttendee = async ({ name: rawName, email, mobile, gender, age, category, amount, coverAmount }, user) => {
   // Names are stored in capitals (as printed on the ticket and in the QR)
   const name = String(rawName || "").trim().toUpperCase();
-  mobile = String(mobile || "").trim();
+  mobile = toMobile(mobile);
 
   if (!name || !mobile || !category) {
     throw httpError(400, "name, mobile, and category are required");
@@ -249,7 +258,7 @@ router.put("/:id", async (req, res) => {
     // Update fields (QR token + registration stay SAME 🔒; QR image is redrawn with the new details)
     attendee.name = name ?? attendee.name;
     attendee.email = email ?? attendee.email;
-    attendee.mobile = mobile ?? attendee.mobile;
+    attendee.mobile = mobile === undefined || mobile === null ? attendee.mobile : toMobile(mobile);
     attendee.whatsappNo = attendee.mobile;
     attendee.gender = gender ?? attendee.gender;
     attendee.age = age ?? attendee.age;

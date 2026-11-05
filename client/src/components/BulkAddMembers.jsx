@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import API from "../api";
-import { readMembersFromFile } from "../utils/memberImport";
+import { readMembersFromFile, toMobile } from "../utils/memberImport";
 
 // Bulk add: several member rows on one form, saved together with ticket numbers in row order.
 // Only members are saved; tickets are sent later from Member Report.
@@ -11,7 +11,7 @@ const emptyRow = () => ({ key: crypto.randomUUID(), name: "", mobile: "", catego
 
 const rowError = (row) =>
   !row.name.trim() ? "Name missing" :
-  row.mobile.replace(/\D/g, "").length !== 10 ? "Mobile must be 10 digits" :
+  !toMobile(row.mobile) ? "Mobile must be 10 digits" :
   !row.category ? "Select a category" :
   row.amount === "" || row.coverAmount === "" ? "Enter ticket price and cover price (0 if free)" :
   "";
@@ -33,7 +33,7 @@ function BulkAddMembers({ categories = [], onAdded }) {
   const updateRow = (key, field, value) => {
     setResult(null);
     setRows((current) => current.map((row) =>
-      row.key === key ? { ...row, [field]: field === "name" ? value.toUpperCase() : value } : row
+      row.key === key ? { ...row, [field]: field === "name" ? value.toUpperCase() : field === "mobile" ? toMobile(value) || value : value } : row
     ));
   };
   const addRow = () => setRows((current) => [...current, emptyRow()]);
@@ -77,7 +77,7 @@ function BulkAddMembers({ categories = [], onAdded }) {
     try {
       setSaving(true);
       const res = await API.post("/attendees/bulk", {
-        members: filledRows.map(({ name, mobile, category, amount, coverAmount }) => ({ name, mobile, category, amount, coverAmount })),
+        members: filledRows.map(({ name, mobile, category, amount, coverAmount }) => ({ name, mobile: toMobile(mobile), category, amount, coverAmount })),
       });
       setResult(res.data);
       setNotice("");
