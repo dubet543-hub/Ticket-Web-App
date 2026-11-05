@@ -24,12 +24,9 @@ const generateRegistrationNo = async () => {
 const toAmount = (value, fallback = 0) =>
   value === undefined || value === null || value === "" ? fallback : Number(value) || 0;
 
-// Helper: generate ticket number
-const generateTicketNo = () => {
-  const timestamp = Date.now();
-  const random = Math.floor(Math.random() * 10000);
-  return `TICKET${timestamp}${random}`.substring(0, 15);
-};
+// Helper: generate ticket number (internal id, unique; the printed number is registrationNo)
+// Not cut short: a shortened one repeated for members saved within the same 10 seconds
+const generateTicketNo = () => `TICKET${Date.now()}${crypto.randomInt(10000).toString().padStart(4, "0")}`;
 
 
 
@@ -86,7 +83,12 @@ const createAttendee = async ({ name: rawName, email, mobile, gender, age, categ
     try {
       return await newAttendee.save();
     } catch (error) {
-      if (error.code !== 11000 || !error.keyPattern?.registrationNo || attempt >= 5) throw error;
+      if (error.code !== 11000 || attempt >= 5) throw error;
+      if (error.keyPattern?.ticketNo) {
+        newAttendee.ticketNo = generateTicketNo();
+        continue;
+      }
+      if (!error.keyPattern?.registrationNo) throw error;
       registrationNo = await generateRegistrationNo();
       newAttendee.registrationNo = registrationNo;
       newAttendee.qrCode = await generateAttendeeQRCode(
