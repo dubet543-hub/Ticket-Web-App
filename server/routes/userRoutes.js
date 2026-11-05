@@ -1,6 +1,6 @@
 const express = require("express");
 const User = require("../models/User");
-const { issueToken, requireAdmin } = require("../middleware/auth");
+const { issueToken, requireAdmin, canDeleteMembers } = require("../middleware/auth");
 
 const router = express.Router();
 
@@ -62,6 +62,8 @@ router.post("/", requireAdmin, async (req, res) => {
     // Return user without password
     const userResponse = user.toObject();
     delete userResponse.password;
+    // Shows the Delete button in Member Report for this login
+    userResponse.canDeleteMembers = canDeleteMembers(user);
 
     res.status(201).json(userResponse);
   } catch (error) {
@@ -100,6 +102,8 @@ router.put("/:id", requireAdmin, async (req, res) => {
 
     const userResponse = user.toObject();
     delete userResponse.password;
+    // Shows the Delete button in Member Report for this login
+    userResponse.canDeleteMembers = canDeleteMembers(user);
 
     res.json(userResponse);
   } catch (error) {
@@ -149,6 +153,8 @@ router.post("/login", async (req, res) => {
 
     const userResponse = user.toObject();
     delete userResponse.password;
+    // Shows the Delete button in Member Report for this login
+    userResponse.canDeleteMembers = canDeleteMembers(user);
 
     const token = issueToken(user);
 

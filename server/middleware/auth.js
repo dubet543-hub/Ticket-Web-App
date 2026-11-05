@@ -49,8 +49,23 @@ const requireAdmin = (req, res, next) => {
   next();
 };
 
+// Only these logins may delete members (Render: MEMBER_DELETE_USERNAMES, comma-separated)
+const memberDeleteUsernames = (process.env.MEMBER_DELETE_USERNAMES || "dubet")
+  .split(",")
+  .map((name) => name.trim().toLowerCase())
+  .filter(Boolean);
+
+const canDeleteMembers = (user) => memberDeleteUsernames.includes(String(user?.username || "").toLowerCase());
+
+const requireMemberDelete = (req, res, next) => {
+  if (!canDeleteMembers(req.user)) {
+    return res.status(403).json({ message: "This login cannot delete members" });
+  }
+  next();
+};
+
 // How a login is named in reports: "Gate 1 (gate1)"
 const userLabel = (user) =>
   user ? (user.username && user.username !== user.name ? `${user.name} (${user.username})` : user.name) : "";
 
-module.exports = { issueToken, requireAuth, requireAdmin, userLabel };
+module.exports = { issueToken, requireAuth, requireAdmin, canDeleteMembers, requireMemberDelete, userLabel };

@@ -617,6 +617,19 @@ function App() {
     );
   };
 
+  // Only logins the server allows (currentUser.canDeleteMembers) see Delete
+  const handleDeleteAttendee = async (attendeeId, name) => {
+    const member = attendees.find((item) => item._id === attendeeId);
+    const label = `${member?.registrationNo || ""} ${name || ""}`.trim();
+    if (!window.confirm(`Delete ${label}?\n\nTheir ticket will stop working at the gate. This cannot be undone.`)) return;
+    try {
+      await API.delete(`/attendees/${attendeeId}`);
+      await Promise.all([fetchAttendees(), fetchDashboardSummary(), fetchNextRegistrationNo()]);
+    } catch (err) {
+      alert(err?.response?.data?.message || "Failed to delete member");
+    }
+  };
+
   const handleResendWhatsApp = async (attendeeId) => {
     try {
       await API.post(`/attendees/${attendeeId}/resend-whatsapp`);
@@ -860,6 +873,7 @@ function App() {
                     onSendAllTickets={whatsappAutoSend ? handleSendAllTickets : undefined}
                     onResendWhatsApp={handleResendWhatsApp}
                     onEditAttendee={handleEditAttendee}
+                    onDeleteAttendee={currentUser?.canDeleteMembers ? handleDeleteAttendee : undefined}
                     onFetchAttendees={fetchAttendees}
                   />
                 )}

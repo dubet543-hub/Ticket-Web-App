@@ -7,6 +7,7 @@ const Attendee = require("../models/Attendee");
 const Category = require("../models/Category");
 const { sendWhatsAppTicket } = require("../utils/whatsappService");
 const { generateAttendeeQRCode, REGISTRATION_PREFIX } = require("../utils/qrGenerator");
+const { requireMemberDelete } = require("../middleware/auth");
 
 // Helper: next registration number after the highest one in use
 // (not a count, so deleted members never cause a repeated number)
@@ -284,7 +285,7 @@ router.put("/:id", async (req, res) => {
 // =====================
 // DELETE ATTENDEE
 // =====================
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", requireMemberDelete, async (req, res) => {
   try {
     const attendee = await Attendee.findById(req.params.id);
 
