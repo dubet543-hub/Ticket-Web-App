@@ -27,8 +27,9 @@ const toPrice = (value) => {
   return match ? String(Number(match[0])) : "";
 };
 
-const toName = (value) => cellText(value).replace(/\d+/g, " ").replace(/\s+/g, " ").trim().toUpperCase();
-const looksLikeName = (value) => /[a-z]/i.test(value) && !/\d{3,}/.test(value) && value.length <= 60;
+// Phone numbers written next to a name are dropped; short numbers ("GUEST 12") stay in the name
+const toName = (value) => cellText(value).replace(/\+\d{1,3}\b|\d{5,}/g, " ").replace(/\s+/g, " ").trim().toUpperCase();
+const looksLikeName = (value) => /[a-z]/i.test(value) && !/\d{5,}/.test(value) && value.length <= 60;
 
 const NAME_HEADING = /name/i;
 const FIRST_NAME_HEADING = /first\s*name|^first$/i;
