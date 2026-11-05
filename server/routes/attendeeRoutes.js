@@ -33,77 +33,80 @@ const generateTicketNo = () => {
 
 
 
+// Error with an HTTP status, for messages the form shows as they are
+const httpError = (status, message) => Object.assign(new Error(message), { status });
+
+// Saves one member with the next ticket number. Used by the form and by bulk add.
+const createAttendee = async ({ name: rawName, email, mobile, gender, age, category, amount, coverAmount }, user) => {
+  // Names are stored in capitals (as printed on the ticket and in the QR)
+  const name = String(rawName || "").trim().toUpperCase();
+  mobile = String(mobile || "").trim();
+
+  if (!name || !mobile || !category) {
+    throw httpError(400, "name, mobile, and category are required");
+  }
+
+  const foundCategory = await Category.findById(category);
+
+  if (!foundCategory) {
+    throw httpError(404, "Category not found");
+  }
+
+  let registrationNo = await generateRegistrationNo();
+  const ticketNo = generateTicketNo();
+  const ticketAmount = toAmount(amount, foundCategory.price);
+  const ticketCoverAmount = toAmount(coverAmount, foundCategory.coverPrice);
+  const qrToken = crypto.randomUUID();
+  const qrCode = await generateAttendeeQRCode(
+    { registrationNo, name, mobile, gender, amount: ticketAmount, qrToken },
+    foundCategory.categoryName
+  );
+
+  const newAttendee = new Attendee({
+    registrationNo,
+    ticketNo,
+    name,
+    email,
+    mobile,
+    gender,
+    age,
+    category: foundCategory._id,
+    amount: ticketAmount,
+    coverAmount: ticketCoverAmount,
+    qrToken,
+    qrCode,
+    whatsappNo: mobile,
+    whatsappStatus: "pending",
+    // The login that registered this member (shown as "Entry By" in reports)
+    createdBy: user?._id,
+  });
+
+  // Two members saved at the same moment can get the same number; retry with the next one
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await newAttendee.save();
+    } catch (error) {
+      if (error.code !== 11000 || !error.keyPattern?.registrationNo || attempt >= 5) throw error;
+      registrationNo = await generateRegistrationNo();
+      newAttendee.registrationNo = registrationNo;
+      newAttendee.qrCode = await generateAttendeeQRCode(
+        { registrationNo, name, mobile, gender, amount: ticketAmount, qrToken },
+        foundCategory.categoryName
+      );
+    }
+  }
+};
+
 // =====================
 // CREATE ATTENDEE
 // =====================
 router.post("/", async (req, res) => {
   try {
-    const { name: rawName, email, mobile, gender, age, category, amount, coverAmount, sendWhatsApp } = req.body;
-    // Names are stored in capitals (as printed on the ticket and in the QR)
-    const name = String(rawName || "").trim().toUpperCase();
-
-    if (!name || !mobile || !category) {
-      return res.status(400).json({
-        message: "name, mobile, and category are required",
-      });
-    }
-
-    const foundCategory = await Category.findById(category);
-
-    if (!foundCategory) {
-      return res.status(404).json({
-        message: "Category not found",
-      });
-    }
-
-    let registrationNo = await generateRegistrationNo();
-    const ticketNo = generateTicketNo();
-    const ticketAmount = toAmount(amount, foundCategory.price);
-    const ticketCoverAmount = toAmount(coverAmount, foundCategory.coverPrice);
-    const qrToken = crypto.randomUUID();
-    const qrCode = await generateAttendeeQRCode(
-      { registrationNo, name, mobile, gender, amount: ticketAmount, qrToken },
-      foundCategory.categoryName
-    );
-
-    const newAttendee = new Attendee({
-      registrationNo,
-      ticketNo,
-      name,
-      email,
-      mobile,
-      gender,
-      age,
-      category: foundCategory._id,
-      amount: ticketAmount,
-      coverAmount: ticketCoverAmount,
-      qrToken,
-      qrCode,
-      whatsappNo: mobile,
-      whatsappStatus: "pending",
-      // The login that registered this member (shown as "Entry By" in reports)
-      createdBy: req.user?._id,
-    });
-
-    // Two members saved at the same moment can get the same number; retry with the next one
-    let savedAttendee;
-    for (let attempt = 1; ; attempt++) {
-      try {
-        savedAttendee = await newAttendee.save();
-        break;
-      } catch (error) {
-        if (error.code !== 11000 || !error.keyPattern?.registrationNo || attempt >= 5) throw error;
-        registrationNo = await generateRegistrationNo();
-        newAttendee.registrationNo = registrationNo;
-        newAttendee.qrCode = await generateAttendeeQRCode(
-          { registrationNo, name, mobile, gender, amount: ticketAmount, qrToken },
-          foundCategory.categoryName
-        );
-      }
-    }
+    const savedAttendee = await createAttendee(req.body, req.user);
+    const { mobile, name, registrationNo, qrCode } = savedAttendee;
 
     // Send WhatsApp ticket if requested
-    if (sendWhatsApp && mobile) {
+    if (req.body.sendWhatsApp && mobile) {
       const whatsappResult = await sendWhatsAppTicket(
         mobile,
         name,
@@ -124,11 +127,37 @@ router.post("/", async (req, res) => {
     const populatedAttendee = await Attendee.findById(savedAttendee._id).populate("category");
     res.status(201).json(populatedAttendee);
   } catch (error) {
+    if (error.status) return res.status(error.status).json({ message: error.message });
     res.status(500).json({
       message: "Error creating attendee",
       error: error.message,
     });
   }
+});
+
+// =====================
+// BULK ADD ATTENDEES
+// Body: { members: [{ name, mobile, category, amount, coverAmount }] }
+// Saved one by one in list order, so ticket numbers follow the list. No tickets are sent.
+// =====================
+router.post("/bulk", async (req, res) => {
+  const members = Array.isArray(req.body?.members) ? req.body.members : [];
+  if (!members.length || members.length > 500) {
+    return res.status(400).json({ message: "Send between 1 and 500 members" });
+  }
+
+  const added = [];
+  const failed = [];
+  for (const [index, member] of members.entries()) {
+    try {
+      const { registrationNo, name } = await createAttendee(member, req.user);
+      added.push({ row: index + 1, registrationNo, name });
+    } catch (error) {
+      failed.push({ row: index + 1, name: member?.name || "", message: error.message });
+    }
+  }
+
+  res.status(failed.length && !added.length ? 400 : 201).json({ added, failed });
 });
 
 

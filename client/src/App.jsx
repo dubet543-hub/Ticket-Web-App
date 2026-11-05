@@ -11,6 +11,7 @@ import FacilityForm from "./components/FacilityForm";
 import UserManagement from "./components/UserManagement";
 import CheckInScanner from "./components/CheckInScanner";
 import AttendeeForm from "./components/AttendeeForm";
+import BulkAddMembers from "./components/BulkAddMembers";
 import ReportView from "./components/ReportView";
 import Login from "./components/Login";
 
@@ -822,6 +823,13 @@ function App() {
                     onFormChange={handleAttendeeChange}
                     onSubmit={handleAttendeeSubmit}
                     onCancelEdit={resetAttendeeForm}
+                  />
+                )}
+
+                {activeMenu === "attendees" && !editingAttendeeId && (
+                  <BulkAddMembers
+                    categories={categories}
+                    onAdded={() => { fetchAttendees(); fetchNextRegistrationNo(); fetchDashboardSummary(); }}
                   />
                 )}
 
