@@ -140,7 +140,7 @@ router.get("/", async (req, res) => {
   try {
     const attendees = await Attendee.find()
       .populate("category")
-      .sort({ createdAt: -1 });
+      .sort({ registrationNo: 1, createdAt: 1 });
 
     res.status(200).json(attendees);
   } catch (error) {

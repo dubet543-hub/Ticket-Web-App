@@ -21,7 +21,7 @@ router.get("/attendees", async (req, res) => {
       .select("-qrCode")
       .populate("category")
       .populate("createdBy", "name username")
-      .sort({ createdAt: -1 })
+      .sort({ registrationNo: 1, createdAt: 1 })
       .lean();
 
     const totalAttendees = attendees.length;
