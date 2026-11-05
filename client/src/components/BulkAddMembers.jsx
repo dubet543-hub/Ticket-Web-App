@@ -57,16 +57,18 @@ function BulkAddMembers({ categories = [], onAdded }) {
         categories.find((item) => value && item.categoryName?.trim().toLowerCase() === value.trim().toLowerCase())?._id || "";
       setRows((current) => [
         ...current.filter((row) => !isBlank(row)),
-        ...members.map(({ name, mobile, sheet, categoryName }) => ({
-          ...emptyRow(), name, mobile, category: categoryNamed(categoryName) || categoryNamed(sheet), imported: true,
+        ...members.map(({ name, mobile, sheet, categoryName, amount, coverAmount }) => ({
+          ...emptyRow(), name, mobile, category: categoryNamed(categoryName) || categoryNamed(sheet), amount, coverAmount, imported: true,
         })),
       ]);
       setShowErrors(false);
       const withoutNumber = members.filter((member) => !member.mobile).length;
+      const withPrices = members.filter((member) => member.amount !== "" && member.coverAmount !== "").length;
       setNotice(
         `Loaded ${members.length} members from ${file.name}.` +
         (withoutNumber ? ` ${withoutNumber} have no mobile number: fill them in (boxes marked red).` : "") +
-        ' Choose the category and prices (use "Set for all rows" below), check the list, then click Save All. Nothing is saved yet.'
+        (withPrices ? ` Ticket and cover price filled from the file for ${withPrices}.` : "") +
+        ' Choose the category and any missing prices (use "Set for all rows" below), check the list, then click Save All. Nothing is saved yet.'
       );
     } catch (err) {
       setNotice(err.message || "Could not read this file.");
