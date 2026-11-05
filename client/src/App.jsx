@@ -128,6 +128,9 @@ function App() {
   const [recentScans,     setRecentScans]     = useState([]);
 
   const [editingAttendeeId, setEditingAttendeeId] = useState(null);
+  // Report the edit was opened from ({ menu, scrollTop }); Update / Cancel goes back to it
+  const [editReturn, setEditReturn] = useState(null);
+  const mainRef = useRef(null);
   const [whatsappAutoSend,  setWhatsappAutoSend]  = useState(false);
   // Ticket number shown on the Register Member form: the next one, or the member being edited
   const [nextRegistrationNo, setNextRegistrationNo] = useState("");
@@ -300,8 +303,23 @@ function App() {
       coverAmount: attendee.coverAmount ?? "",
       sendWhatsApp: false,
     });
+    setEditReturn(activeMenu === "attendees" ? null : { menu: activeMenu, scrollTop: mainRef.current?.scrollTop || 0 });
     setActiveMenu("attendees");
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    mainRef.current?.scrollTo({ top: 0 });
+  };
+
+  // Leaving the form another way (menu click) forgets the way back
+  useEffect(() => {
+    if (activeMenu !== "attendees") setEditReturn(null);
+  }, [activeMenu]);
+
+  // After Update / Cancel: back to the report the edit came from, at the same place (search kept)
+  const finishEdit = () => {
+    resetAttendeeForm();
+    if (!editReturn) return;
+    setActiveMenu(editReturn.menu);
+    setEditReturn(null);
+    requestAnimationFrame(() => mainRef.current?.scrollTo({ top: editReturn.scrollTop }));
   };
 
   const handleDeleteCategory = async (categoryId, categoryName) => {
@@ -405,7 +423,8 @@ function App() {
       // Open WhatsApp right away (no alert first, so the popup isn't blocked)
       if (sendWhatsApp) await handleSendWhatsApp(res.data, { updated: isUpdate });
       else alert(isUpdate ? `${res.data.registrationNo} updated successfully` : `Member added: ticket ${res.data.registrationNo}`);
-      resetAttendeeForm();
+      if (isUpdate) finishEdit();
+      else resetAttendeeForm();
       await Promise.all([fetchAttendees(), fetchDashboardSummary(), fetchNextRegistrationNo()]);
     } catch (err) {
       alert(err?.response?.data?.message || "Failed to save attendee");
@@ -782,7 +801,7 @@ function App() {
             onLogout={handleLogout}
           />
 
-          <main className="app-main">
+          <main className="app-main" ref={mainRef}>
             <div className="app-inner">
 
               {/* Mobile pill navigation */}
@@ -856,7 +875,7 @@ function App() {
                     categories={categories}
                     onFormChange={handleAttendeeChange}
                     onSubmit={handleAttendeeSubmit}
-                    onCancelEdit={resetAttendeeForm}
+                    onCancelEdit={finishEdit}
                   />
                 )}
 
@@ -883,7 +902,8 @@ function App() {
                   />
                 )}
 
-                {activeMenu === "member-report" && (
+                {(activeMenu === "member-report" || (activeMenu === "attendees" && editReturn?.menu === "member-report")) && (
+                  <div style={activeMenu === "member-report" ? undefined : { display: "none" }}>
                   <ReportView
                     type="member"
                     attendees={attendees}
@@ -898,6 +918,7 @@ function App() {
                     onRenumberMembers={currentUser?.canDeleteMembers ? handleRenumberMembers : undefined}
                     onFetchAttendees={fetchAttendees}
                   />
+                  </div>
                 )}
 
                 {activeMenu === "facility-report" && (
