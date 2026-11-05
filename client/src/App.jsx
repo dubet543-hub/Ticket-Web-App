@@ -575,6 +575,44 @@ function App() {
     }
   };
 
+  // Bulk send through the Cloud API, one member at a time. Meta allows only about one message
+  // every 6 s to the same number, so members sharing a mobile are spaced out.
+  // Stops after 3 failures in a row: that points to a setup/billing problem, not one bad number.
+  const handleSendAllTickets = async (members, onProgress) => {
+    const lastSentTo = {};
+    let sent = 0;
+    const failed = [];
+    let failuresInARow = 0;
+
+    for (const [index, member] of members.entries()) {
+      onProgress(index + 1, members.length);
+      const wait = (lastSentTo[member.mobile] || 0) + 7000 - Date.now();
+      await new Promise((resolve) => setTimeout(resolve, Math.max(wait, 1000)));
+
+      try {
+        const blob = await generateTicketImage(member, "image/jpeg");
+        await API.post(`/attendees/${member._id}/resend-whatsapp`, {
+          ticketImage: await blobToDataURL(blob),
+        });
+        sent += 1;
+        failuresInARow = 0;
+      } catch (err) {
+        failed.push(`${member.registrationNo} ${member.name}: ${err?.response?.data?.message || err.message}`);
+        failuresInARow += 1;
+      }
+      lastSentTo[member.mobile] = Date.now();
+      if (failuresInARow >= 3) break;
+    }
+
+    await Promise.all([fetchAttendees(), fetchDashboardSummary()]);
+    const stopped = failuresInARow >= 3 ? "\n\nStopped after 3 failures in a row. Fix the problem below, then click again to send the rest." : "";
+    alert(
+      `Tickets sent: ${sent}` +
+      (failed.length ? `\nFailed: ${failed.length}\n\n${failed.slice(0, 10).join("\n")}` : "") +
+      stopped
+    );
+  };
+
   const handleResendWhatsApp = async (attendeeId) => {
     try {
       await API.post(`/attendees/${attendeeId}/resend-whatsapp`);
@@ -808,6 +846,7 @@ function App() {
                     users={users}
                     onPrintReport={handlePrintReport}
                     onSendWhatsApp={handleSendWhatsApp}
+                    onSendAllTickets={whatsappAutoSend ? handleSendAllTickets : undefined}
                     onResendWhatsApp={handleResendWhatsApp}
                     onEditAttendee={handleEditAttendee}
                     onFetchAttendees={fetchAttendees}

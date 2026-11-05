@@ -22,6 +22,7 @@ function ReportView({
   users = [],
   onPrintReport,
   onSendWhatsApp,
+  onSendAllTickets,
   onEditAttendee,
   onDeleteAttendee,
 }) {
@@ -135,6 +136,22 @@ function ReportView({
       alert("Could not create the Excel file. Please try again.");
     } finally {
       setExcelLoading(false);
+    }
+  };
+
+  // Members in the rows shown (search applies) who have never been sent a ticket
+  const notSentMembers = filteredAttendees.filter((item) => item.mobile && !ticketWasSent(item));
+  const [bulkProgress, setBulkProgress] = useState(null);
+  const handleSendAll = async () => {
+    const minutes = Math.ceil((notSentMembers.length * 3) / 60);
+    if (!window.confirm(
+      `Send tickets on WhatsApp to ${notSentMembers.length} members who have not received one?\n\n` +
+      `This takes about ${minutes} minute${minutes === 1 ? "" : "s"}. Keep this tab open until it finishes.`
+    )) return;
+    try {
+      await onSendAllTickets(notSentMembers, (done, total) => setBulkProgress(`${done} / ${total}`));
+    } finally {
+      setBulkProgress(null);
     }
   };
 
@@ -290,6 +307,17 @@ function ReportView({
 
       <div className="report-print-area rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
         <div className="report-print-hide" style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginBottom: "8px" }}>
+          {type === "member" && onSendAllTickets && (
+            <button
+              type="button"
+              className="btn-success btn-sm"
+              onClick={handleSendAll}
+              disabled={Boolean(bulkProgress) || notSentMembers.length === 0}
+              title={notSentMembers.length ? "Send tickets to every member shown as Not sent" : "Every member shown already has a ticket"}
+            >
+              {bulkProgress ? `Sending ${bulkProgress}…` : `Send to all Not sent (${notSentMembers.length})`}
+            </button>
+          )}
           <button
             type="button"
             className="btn-success btn-sm"
