@@ -52,12 +52,20 @@ function BulkAddMembers({ categories = [], onAdded }) {
         setNotice(`No names or 10-digit mobile numbers found in ${file.name}.`);
         return;
       }
+      // A sheet named like a category ("Female") gives its members that category
+      const categoryOfSheet = (sheet) =>
+        categories.find((item) => sheet && item.categoryName?.trim().toLowerCase() === sheet.trim().toLowerCase())?._id || "";
       setRows((current) => [
         ...current.filter((row) => !isBlank(row)),
-        ...members.map((member) => ({ ...emptyRow(), ...member })),
+        ...members.map(({ name, mobile, sheet }) => ({ ...emptyRow(), name, mobile, category: categoryOfSheet(sheet), imported: true })),
       ]);
       setShowErrors(false);
-      setNotice(`Loaded ${members.length} members from ${file.name}. Choose the category and prices (use "Set for all rows" below), check the list, then click Save All. Nothing is saved yet.`);
+      const withoutNumber = members.filter((member) => !member.mobile).length;
+      setNotice(
+        `Loaded ${members.length} members from ${file.name}.` +
+        (withoutNumber ? ` ${withoutNumber} have no mobile number: fill them in (boxes marked red).` : "") +
+        ' Choose the category and prices (use "Set for all rows" below), check the list, then click Save All. Nothing is saved yet.'
+      );
     } catch (err) {
       setNotice(err.message || "Could not read this file.");
     }
@@ -185,7 +193,9 @@ function BulkAddMembers({ categories = [], onAdded }) {
                     onChange={(e) => updateRow(row.key, "name", e.target.value)}
                   />
                   <input
-                    className="af-input" placeholder="10-digit number" inputMode="numeric" value={row.mobile}
+                    className="af-input" inputMode="numeric" value={row.mobile}
+                    placeholder={row.imported && !row.mobile ? "Add mobile number" : "10-digit number"}
+                    style={row.imported && !row.mobile ? { borderColor: "#f87171", background: "#fef2f2" } : undefined}
                     onChange={(e) => updateRow(row.key, "mobile", e.target.value)}
                   />
                   <div className="af-select-wrap">

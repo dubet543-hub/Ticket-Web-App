@@ -38,40 +38,44 @@ const extractMembers = (rows) => {
   const table = rows.map((row) => (row || []).map(cellText));
   const width = Math.max(0, ...table.map((row) => row.length));
 
-  // Heading row: one of the first 10 rows naming both a name and a mobile column
+  // Heading row: one of the first 10 rows naming a name column (a mobile column is optional)
   let start = 0;
   let nameCols = [];
   let mobileCol = -1;
   for (let index = 0; index < Math.min(10, table.length); index++) {
     const row = table[index];
-    const mobile = row.findIndex((cell) => MOBILE_HEADING.test(cell) && !NAME_HEADING.test(cell) && !toMobile(cell));
     const first = row.findIndex((cell) => FIRST_NAME_HEADING.test(cell));
     const last = row.findIndex((cell) => LAST_NAME_HEADING.test(cell));
     const name = row.findIndex((cell) => NAME_HEADING.test(cell) && !/father|company|user|file/i.test(cell));
     const names = first >= 0 ? [first, last].filter((col) => col >= 0) : name >= 0 ? [name] : [];
-    if (mobile >= 0 && names.length) {
+    if (names.length) {
       start = index + 1;
       nameCols = names;
-      mobileCol = mobile;
+      mobileCol = row.findIndex((cell, col) => !names.includes(col) && MOBILE_HEADING.test(cell) && !toMobile(cell));
       break;
     }
   }
+  const body = table.slice(start);
 
-  // No headings: pick the columns by what is in them
-  if (mobileCol < 0) {
-    mobileCol = bestColumn(width, (col) => table.filter((row) => toMobile(row[col])).length);
-    if (mobileCol < 0) return [];
-    const nameCol = bestColumn(width, (col) => (col === mobileCol ? 0 : table.filter((row) => looksLikeName(row[col] || "")).length));
+  if (!nameCols.length) {
+    // No headings: pick the columns by what is in them
+    mobileCol = bestColumn(width, (col) => body.filter((row) => toMobile(row[col])).length);
+    const nameCol = bestColumn(width, (col) => (col === mobileCol ? 0 : body.filter((row) => looksLikeName(row[col] || "")).length));
+    if (nameCol < 0 && mobileCol < 0) return [];
     nameCols = nameCol >= 0 ? [nameCol] : [];
+  } else if (mobileCol < 0) {
+    // A name heading but no mobile heading: the column holding the numbers, if any
+    mobileCol = bestColumn(width, (col) => (nameCols.includes(col) ? 0 : body.filter((row) => toMobile(row[col])).length));
   }
 
-  return table.slice(start).flatMap((row) => {
-    const mobile = toMobile(row[mobileCol]);
+  return body.flatMap((row) => {
+    const mobileCell = mobileCol >= 0 ? row[mobileCol] : "";
+    const mobile = toMobile(mobileCell);
     // A name written in the mobile cell ("Rahul 98765 43210") is used when there is no name column
-    const name = nameCols.map((col) => toName(row[col])).filter(Boolean).join(" ") || toName(row[mobileCol]);
+    const name = nameCols.map((col) => toName(row[col])).filter(Boolean).join(" ") || toName(mobileCell);
     if (!mobile && !name) return [];
-    // Keep a wrong number as typed, so it shows up in red to be fixed
-    return [{ name, mobile: mobile || cellText(row[mobileCol]) }];
+    // Names without a number are kept (mobile left empty to fill in); a wrong number stays as typed
+    return [{ name, mobile: mobile || cellText(mobileCell) }];
   });
 };
 
@@ -99,18 +103,18 @@ const parseCsv = (text) => {
   return rows;
 };
 
-// Every sheet of the file is read; returns [{ name, mobile }] in file order
+// Every sheet of the file is read; returns [{ name, mobile, sheet }] in file order
 export const readMembersFromFile = async (file) => {
   const extension = file.name.split(".").pop().toLowerCase();
   let sheets;
   if (extension === "csv" || extension === "txt") {
-    sheets = [parseCsv(await file.text())];
+    sheets = [{ sheet: "", data: parseCsv(await file.text()) }];
   } else if (extension === "xlsx") {
     // Loaded only when a file is uploaded, so the app itself stays small
     const { default: readXlsxFile } = await import("read-excel-file/browser");
-    sheets = (await readXlsxFile(file)).map(({ data }) => data);
+    sheets = await readXlsxFile(file);
   } else {
     throw new Error('This file type can\'t be read. In Excel use File → Save As → "Excel Workbook (.xlsx)" or "CSV", then upload that.');
   }
-  return sheets.flatMap(extractMembers);
+  return sheets.flatMap(({ sheet, data }) => extractMembers(data).map((member) => ({ ...member, sheet })));
 };
