@@ -15,6 +15,17 @@ const WHATSAPP_STATUS = {
 // A ticket counts as sent once Meta accepted it (sent/delivered/read) or tried and failed
 const ticketWasSent = (item) => ["sent", "delivered", "read", "failed"].includes(item.whatsappStatus);
 
+// Member Report tabs by WhatsApp status ("Sent" = accepted by Meta, not delivered yet)
+const WHATSAPP_FILTERS = [
+  { id: "", label: "All" },
+  { id: "failed", label: "Failed", color: "#dc2626" },
+  { id: "not-sent", label: "Not sent" },
+  { id: "sent", label: "Sent, not delivered" },
+  { id: "delivered", label: "Delivered" },
+  { id: "read", label: "Read" },
+];
+const whatsappFilterOf = (item) => (ticketWasSent(item) ? item.whatsappStatus : "not-sent");
+
 function ReportView({
   type,
   attendees = [],
@@ -33,6 +44,7 @@ function ReportView({
   const [toDate, setToDate] = useState("");
   // Name / mobile number search filters as you type (no Submit needed)
   const [searchText, setSearchText] = useState("");
+  const [whatsappFilter, setWhatsappFilter] = useState("");
   const [appliedFilters, setAppliedFilters] = useState({
     searchFacility: "",
     salesPerson: "",
@@ -40,7 +52,7 @@ function ReportView({
     toDate: "",
   });
 
-  const filteredAttendees = useMemo(() => {
+  const matchingAttendees = useMemo(() => {
     const { searchFacility: selectedFacility, salesPerson: selectedSalesPerson, fromDate: selectedFromDate, toDate: selectedToDate } = appliedFilters;
 
     return attendees.filter((item) => {
@@ -76,6 +88,16 @@ function ReportView({
     });
   }, [attendees, type, appliedFilters, searchText]);
 
+  const whatsappCounts = useMemo(() => {
+    const counts = { "": matchingAttendees.length };
+    for (const item of matchingAttendees) counts[whatsappFilterOf(item)] = (counts[whatsappFilterOf(item)] || 0) + 1;
+    return counts;
+  }, [matchingAttendees]);
+  const filteredAttendees = useMemo(
+    () => (type === "member" && whatsappFilter ? matchingAttendees.filter((item) => whatsappFilterOf(item) === whatsappFilter) : matchingAttendees),
+    [matchingAttendees, type, whatsappFilter]
+  );
+
   const reportTitle =
     type === "facility"
       ? "Facility Collect Report"
@@ -92,6 +114,7 @@ function ReportView({
 
   const resetFilters = () => {
     setSearchText("");
+    setWhatsappFilter("");
     setSearchFacility("");
     setSalesPerson("");
     setFromDate("");
@@ -262,6 +285,23 @@ function ReportView({
             </p>
           )}
         </div>
+
+        {type === "member" && (
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "6px", marginBottom: "12px" }}>
+            <span style={{ fontSize: "13px", fontWeight: 600, color: "#475569", marginRight: "4px" }}>WhatsApp:</span>
+            {WHATSAPP_FILTERS.map(({ id, label, color }) => (
+              <button
+                key={id || "all"}
+                type="button"
+                className={`pill ${whatsappFilter === id ? "active" : "inactive"}`}
+                style={whatsappFilter === id && color ? { background: color } : color ? { color } : undefined}
+                onClick={() => setWhatsappFilter(id)}
+              >
+                {label} ({whatsappCounts[id] || 0})
+              </button>
+            ))}
+          </div>
+        )}
 
         {type === "facility" && (
           <div className="space-y-3">
