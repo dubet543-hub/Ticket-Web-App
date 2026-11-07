@@ -4,6 +4,12 @@ const { issueToken, requireAdmin, canDeleteMembers } = require("../middleware/au
 
 const router = express.Router();
 
+// True when `user` is the only active Admin left (removing it would lock everyone out of admin pages)
+const isLastActiveAdmin = async (user) =>
+  user.role === "Admin" &&
+  user.status === "Active" &&
+  (await User.countDocuments({ role: "Admin", status: "Active", _id: { $ne: user._id } })) === 0;
+
 // Get all users
 router.get("/", async (req, res) => {
   try {
@@ -91,6 +97,17 @@ router.put("/:id", requireAdmin, async (req, res) => {
       user.username = username;
     }
 
+    // Your own login and the last active Admin can't lose admin access or be made inactive
+    const losesAdmin = (role && role !== "Admin") || (status && status !== "Active");
+    if (losesAdmin && user.role === "Admin") {
+      if (String(user._id) === String(req.user?._id)) {
+        return res.status(400).json({ message: "You can't remove admin access from your own login" });
+      }
+      if (await isLastActiveAdmin(user)) {
+        return res.status(400).json({ message: "This is the only active Admin, so it must stay an active Admin" });
+      }
+    }
+
     if (name) user.name = name;
     if (password) user.password = password; // Will be hashed by pre-save hook
     if (role) user.role = role;
@@ -115,10 +132,17 @@ router.put("/:id", requireAdmin, async (req, res) => {
 // Delete user
 router.delete("/:id", requireAdmin, async (req, res) => {
   try {
-    const user = await User.findByIdAndDelete(req.params.id);
+    if (req.params.id === String(req.user?._id)) {
+      return res.status(400).json({ message: "You can't delete your own login" });
+    }
+    const user = await User.findById(req.params.id);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
+    if (await isLastActiveAdmin(user)) {
+      return res.status(400).json({ message: "This is the only active Admin, so it can't be deleted" });
+    }
+    await user.deleteOne();
     res.json({ message: "User deleted successfully" });
   } catch (error) {
     console.error("Error deleting user:", error);

@@ -122,6 +122,7 @@ function App() {
   const [categoryLoading, setCategoryLoading] = useState(false);
   const [facilityLoading, setFacilityLoading] = useState(false);
   const [userLoading,     setUserLoading]     = useState(false);
+  const [editingUserId,   setEditingUserId]   = useState(null);
   const [attendeeLoading, setAttendeeLoading] = useState(false);
   const [checkInLoading,  setCheckInLoading]  = useState(false);
   const [checkInResult,   setCheckInResult]   = useState(null);
@@ -375,8 +376,56 @@ function App() {
     }
   };
 
+  // Edit fills the Create Login form; a blank password keeps the current one
+  const handleEditUser = (user) => {
+    setEditingUserId(user._id);
+    setUserForm({ name: user.name || "", username: user.username || "", password: "", role: user.role || "", status: user.status || "Active" });
+    mainRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const resetUserForm = () => {
+    setEditingUserId(null);
+    setUserForm({ name: "", username: "", password: "", role: "" });
+  };
+
+  const handleDeleteUser = async (user) => {
+    if (!window.confirm(
+      `Delete the login "${user.username}" (${user.name})?\n\n` +
+      "They can't log in any more. Members they registered or scanned stay, but reports may no longer show who did it.\n" +
+      "To only stop them logging in, use Edit → Status: Inactive instead."
+    )) return;
+    try {
+      await API.delete(`/users/${user._id}`);
+      if (editingUserId === user._id) resetUserForm();
+      await fetchUsers();
+    } catch (err) {
+      alert(err?.response?.data?.message || "Failed to delete user");
+    }
+  };
+
   const handleUserSubmit = async (e) => {
     e.preventDefault();
+    if (editingUserId) {
+      if (!userForm.name || !userForm.username) { alert("Name and username are required"); return; }
+      try {
+        setUserLoading(true);
+        await API.put(`/users/${editingUserId}`, {
+          name:     userForm.name,
+          username: userForm.username,
+          role:     userForm.role || undefined,
+          status:   userForm.status || undefined,
+          ...(userForm.password ? { password: userForm.password } : {}),
+        });
+        resetUserForm();
+        await fetchUsers();
+        alert("User updated successfully");
+      } catch (err) {
+        alert(err?.response?.data?.message || "Failed to update user");
+      } finally {
+        setUserLoading(false);
+      }
+      return;
+    }
     if (!userForm.name || !userForm.username || !userForm.password) {
       alert("Please fill all required fields"); return;
     }
@@ -863,6 +912,11 @@ function App() {
                     users={users}
                     onFormChange={handleUserChange}
                     onSubmit={handleUserSubmit}
+                    editingUserId={editingUserId}
+                    currentUserId={currentUser?._id}
+                    onEditUser={handleEditUser}
+                    onDeleteUser={handleDeleteUser}
+                    onCancelEdit={resetUserForm}
                   />
                 )}
 

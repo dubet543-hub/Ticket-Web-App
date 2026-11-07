@@ -1,4 +1,5 @@
-function UserManagement({ userForm, userLoading, onFormChange, onSubmit, users }) {
+function UserManagement({ userForm, userLoading, onFormChange, onSubmit, users, editingUserId, currentUserId, onEditUser, onDeleteUser, onCancelEdit }) {
+  const editing = Boolean(editingUserId);
   return (
     <>
       <style>{`
@@ -301,6 +302,26 @@ function UserManagement({ userForm, userLoading, onFormChange, onSubmit, users }
         }
         .um-empty-text { font-size: 13px; font-weight: 600; color: #64748b; }
         .um-empty-hint { font-size: 12px; color: #94a3b8; }
+
+        /* Edit / Delete */
+        .um-actions { display: flex; gap: 8px; justify-content: flex-end; }
+        .um-action-btn {
+          height: 32px; padding: 0 14px; border-radius: 9px; cursor: pointer;
+          font-size: 12.5px; font-weight: 700; font-family: 'DM Sans', sans-serif;
+          border: 1.5px solid #dde9f2; background: #fff; color: #0f172a;
+          transition: background 0.15s, border-color 0.15s;
+        }
+        .um-action-btn:hover { background: #f1f5f9; border-color: #b8d0e4; }
+        .um-action-delete { border-color: #fecaca; color: #dc2626; }
+        .um-action-delete:hover { background: #fef2f2; border-color: #fca5a5; }
+        .um-you { font-size: 11px; color: #94a3b8; font-family: 'DM Mono', monospace; }
+        .um-editing-row { background: #f0faf7 !important; }
+        .um-cancel-btn {
+          height: 38px; padding: 0 16px; border-radius: 11px; cursor: pointer;
+          font-size: 13px; font-weight: 700; font-family: 'DM Sans', sans-serif;
+          border: 1.5px solid #dde9f2; background: #fff; color: #475569;
+        }
+        .um-cancel-btn:hover { background: #f1f5f9; }
       `}</style>
 
       <div className="um-root">
@@ -317,9 +338,14 @@ function UserManagement({ userForm, userLoading, onFormChange, onSubmit, users }
                   <span className="um-mode-dot" />
                   Access Control
                 </p>
-                <h3 className="um-title">Create User Account</h3>
-                <p className="um-subtitle">Add a new operator with role-based access.</p>
+                <h3 className="um-title">{editing ? `Edit User · ${userForm.username}` : "Create User Account"}</h3>
+                <p className="um-subtitle">
+                  {editing ? "Change the details below. Leave the password empty to keep the current one." : "Add a new operator with role-based access."}
+                </p>
               </div>
+              {editing && (
+                <button type="button" className="um-cancel-btn" onClick={onCancelEdit}>Cancel</button>
+              )}
             </div>
 
             <div className="um-form-stack">
@@ -368,7 +394,7 @@ function UserManagement({ userForm, userLoading, onFormChange, onSubmit, users }
                 <div className="um-grid-2">
                   <div className="um-field">
                     <label className="um-label">
-                      Password <span className="um-required">*</span>
+                      {editing ? "New Password" : <>Password <span className="um-required">*</span></>}
                     </label>
                     <div className="um-pw-wrap">
                       <input
@@ -376,9 +402,9 @@ function UserManagement({ userForm, userLoading, onFormChange, onSubmit, users }
                         name="password"
                         value={userForm.password}
                         onChange={onFormChange}
-                        placeholder="••••••••"
+                        placeholder={editing ? "Leave empty to keep current" : "••••••••"}
                         className="um-input"
-                        required
+                        required={!editing}
                         autoComplete="new-password"
                       />
                     </div>
@@ -402,6 +428,17 @@ function UserManagement({ userForm, userLoading, onFormChange, onSubmit, users }
                       </select>
                     </div>
                   </div>
+                  {editing && (
+                    <div className="um-field">
+                      <label className="um-label">Status</label>
+                      <div className="um-select-wrap">
+                        <select name="status" value={userForm.status || "Active"} onChange={onFormChange} className="um-select">
+                          <option value="Active">Active — can log in</option>
+                          <option value="Inactive">Inactive — can't log in</option>
+                        </select>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -432,7 +469,7 @@ function UserManagement({ userForm, userLoading, onFormChange, onSubmit, users }
                 className="um-submit-btn"
               >
                 {userLoading ? (
-                  <><span className="um-spinner" /><span>Creating…</span></>
+                  <><span className="um-spinner" /><span>{editing ? "Updating…" : "Creating…"}</span></>
                 ) : (
                   <>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -441,7 +478,7 @@ function UserManagement({ userForm, userLoading, onFormChange, onSubmit, users }
                       <line x1="19" y1="8" x2="19" y2="14"/>
                       <line x1="22" y1="11" x2="16" y2="11"/>
                     </svg>
-                    <span>Create User</span>
+                    <span>{editing ? "Update User" : "Create User"}</span>
                   </>
                 )}
               </button>
@@ -474,6 +511,7 @@ function UserManagement({ userForm, userLoading, onFormChange, onSubmit, users }
                       <th>Username</th>
                       <th>Role</th>
                       <th>Status</th>
+                      <th style={{ textAlign: "right" }}>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -490,7 +528,7 @@ function UserManagement({ userForm, userLoading, onFormChange, onSubmit, users }
                         user.role === "DataEntry" ? "Data Entry" : user.role;
 
                       return (
-                        <tr key={user._id}>
+                        <tr key={user._id} className={user._id === editingUserId ? "um-editing-row" : undefined}>
                           <td>
                             <div className="um-name-cell">
                               <div className="um-avatar">{initials}</div>
@@ -511,6 +549,16 @@ function UserManagement({ userForm, userLoading, onFormChange, onSubmit, users }
                               <span className="um-badge-dot" />
                               {user.status}
                             </span>
+                          </td>
+                          <td>
+                            <div className="um-actions">
+                              <button type="button" className="um-action-btn" onClick={() => onEditUser(user)}>Edit</button>
+                              {user._id === currentUserId ? (
+                                <span className="um-you" title="You can't delete the login you are using">(you)</span>
+                              ) : (
+                                <button type="button" className="um-action-btn um-action-delete" onClick={() => onDeleteUser(user)}>Delete</button>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       );
