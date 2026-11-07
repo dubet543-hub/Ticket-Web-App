@@ -40,6 +40,7 @@ function ReportView({
 }) {
   const [searchFacility, setSearchFacility] = useState("");
   const [salesPerson, setSalesPerson] = useState("");
+  const [scanner, setScanner] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   // Name / mobile number search filters as you type (no Submit needed)
@@ -48,12 +49,13 @@ function ReportView({
   const [appliedFilters, setAppliedFilters] = useState({
     searchFacility: "",
     salesPerson: "",
+    scanner: "",
     fromDate: "",
     toDate: "",
   });
 
   const matchingAttendees = useMemo(() => {
-    const { searchFacility: selectedFacility, salesPerson: selectedSalesPerson, fromDate: selectedFromDate, toDate: selectedToDate } = appliedFilters;
+    const { searchFacility: selectedFacility, salesPerson: selectedSalesPerson, scanner: selectedScanner, fromDate: selectedFromDate, toDate: selectedToDate } = appliedFilters;
 
     return attendees.filter((item) => {
       const matchesFacility =
@@ -72,6 +74,9 @@ function ReportView({
         matchesSalesPerson = String(createdById || "") === String(selectedSalesPerson);
       }
 
+      // Same login as the Scanned By column
+      const matchesScanner = type !== "facility" || !selectedScanner || scannedBy(item) === selectedScanner;
+
       const referenceDate = item.createdAt || item.checkedInAt;
       const createdAt = referenceDate ? new Date(referenceDate) : null;
       const fromOk = !selectedFromDate || (createdAt && createdAt >= new Date(`${selectedFromDate}T00:00:00`));
@@ -84,7 +89,7 @@ function ReportView({
         String(item.name || "").toLowerCase().includes(query) ||
         (queryDigits.length > 0 && String(item.mobile || "").replace(/\D/g, "").includes(queryDigits));
 
-      return matchesFacility && matchesSalesPerson && fromOk && toOk && matchesSearch;
+      return matchesFacility && matchesSalesPerson && matchesScanner && fromOk && toOk && matchesSearch;
     });
   }, [attendees, type, appliedFilters, searchText]);
 
@@ -96,6 +101,12 @@ function ReportView({
   const filteredAttendees = useMemo(
     () => (type === "member" && whatsappFilter ? matchingAttendees.filter((item) => whatsappFilterOf(item) === whatsappFilter) : matchingAttendees),
     [matchingAttendees, type, whatsappFilter]
+  );
+
+  // Logins that have scanned someone in (deleted logins too, as they appear in the report)
+  const scannerOptions = useMemo(
+    () => [...new Set(attendees.map(scannedBy).filter((label) => label !== "-"))].sort((a, b) => a.localeCompare(b)),
+    [attendees]
   );
 
   const reportTitle =
@@ -117,11 +128,13 @@ function ReportView({
     setWhatsappFilter("");
     setSearchFacility("");
     setSalesPerson("");
+    setScanner("");
     setFromDate("");
     setToDate("");
     setAppliedFilters({
       searchFacility: "",
       salesPerson: "",
+      scanner: "",
       fromDate: "",
       toDate: "",
     });
@@ -131,6 +144,7 @@ function ReportView({
     setAppliedFilters({
       searchFacility,
       salesPerson,
+      scanner,
       fromDate,
       toDate,
     });
@@ -314,6 +328,19 @@ function ReportView({
               {facilities.map((facility) => (
                 <option key={facility._id} value={facility._id}>
                   {facility.facilityName}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={scanner}
+              onChange={(e) => setScanner(e.target.value)}
+              className="form-input"
+            >
+              <option value="">Scanned by: everyone</option>
+              {scannerOptions.map((label) => (
+                <option key={label} value={label}>
+                  Scanned by: {label}
                 </option>
               ))}
             </select>
