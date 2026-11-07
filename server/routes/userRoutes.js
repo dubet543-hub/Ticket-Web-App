@@ -1,6 +1,7 @@
 const express = require("express");
 const User = require("../models/User");
-const { issueToken, requireAdmin, canDeleteMembers } = require("../middleware/auth");
+const Attendee = require("../models/Attendee");
+const { issueToken, requireAdmin, canDeleteMembers, userLabel } = require("../middleware/auth");
 
 const router = express.Router();
 
@@ -21,14 +22,19 @@ router.get("/", async (req, res) => {
   }
 });
 
-// Get user by id
+// Get user by id, with how many members this login registered and scanned in
 router.get("/:id", async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select("-password");
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
-    res.json(user);
+    // Check-ins store the login's label as it was then, so a renamed login counts under its new name only
+    const [registeredCount, scannedCount] = await Promise.all([
+      Attendee.countDocuments({ createdBy: user._id }),
+      Attendee.countDocuments({ "checkInHistory.checkedInBy": userLabel(user) }),
+    ]);
+    res.json({ ...user.toObject(), registeredCount, scannedCount });
   } catch (error) {
     console.error("Error fetching user:", error);
     res.status(500).json({ message: "Error fetching user" });

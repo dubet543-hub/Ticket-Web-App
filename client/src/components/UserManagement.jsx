@@ -1,5 +1,28 @@
+import { useState } from "react";
+import API from "../api";
+
+const ROLE_ACCESS = {
+  Admin: "Full access: members, reports, check-in, categories, logins",
+  DataEntry: "Register and view members",
+  Scanner: "Check-in and facility reports only",
+};
+
+const formatDateTime = (value) => (value ? new Date(value).toLocaleString() : "-");
+
 function UserManagement({ userForm, userLoading, onFormChange, onSubmit, users, editingUserId, currentUserId, onEditUser, onDeleteUser, onCancelEdit }) {
   const editing = Boolean(editingUserId);
+
+  // View: details of one login, with its counts loaded from the server
+  const [viewing, setViewing] = useState(null);
+  const openView = async (user) => {
+    setViewing({ ...user, loading: true });
+    try {
+      const res = await API.get(`/users/${user._id}`);
+      setViewing((current) => (current?._id === user._id ? { ...res.data, loading: false } : current));
+    } catch {
+      setViewing((current) => (current?._id === user._id ? { ...current, loading: false, failed: true } : current));
+    }
+  };
   return (
     <>
       <style>{`
@@ -316,6 +339,27 @@ function UserManagement({ userForm, userLoading, onFormChange, onSubmit, users, 
         .um-action-delete:hover { background: #fef2f2; border-color: #fca5a5; }
         .um-you { font-size: 11px; color: #94a3b8; font-family: 'DM Mono', monospace; }
         .um-editing-row { background: #f0faf7 !important; }
+
+        /* View box */
+        .um-overlay {
+          position: fixed; inset: 0; z-index: 50; background: rgba(15,23,42,0.45);
+          display: flex; align-items: center; justify-content: center; padding: 16px;
+        }
+        .um-view {
+          width: 100%; max-width: 440px; background: #fff; border-radius: 18px; overflow: hidden;
+          box-shadow: 0 20px 50px rgba(15,30,55,0.3);
+        }
+        .um-view-body { padding: 22px 24px 24px; }
+        .um-view-head { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+        .um-view-head .um-avatar { width: 44px; height: 44px; font-size: 15px; border-radius: 12px; }
+        .um-view-rows { display: grid; grid-template-columns: auto 1fr; gap: 10px 16px; font-size: 13.5px; }
+        .um-view-key { font-family: 'DM Mono', monospace; font-size: 10.5px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: #94a3b8; padding-top: 2px; }
+        .um-view-val { color: #0f172a; }
+        .um-view-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 18px; }
+        .um-view-stat { background: #f8fafc; border: 1px solid #e8f1f8; border-radius: 12px; padding: 12px 14px; }
+        .um-view-stat-num { font-family: 'Sora', sans-serif; font-size: 1.5rem; font-weight: 800; color: #0f172a; }
+        .um-view-stat-label { font-size: 12px; color: #64748b; }
+        .um-view-foot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
         .um-cancel-btn {
           height: 38px; padding: 0 16px; border-radius: 11px; cursor: pointer;
           font-size: 13px; font-weight: 700; font-family: 'DM Sans', sans-serif;
@@ -552,6 +596,7 @@ function UserManagement({ userForm, userLoading, onFormChange, onSubmit, users, 
                           </td>
                           <td>
                             <div className="um-actions">
+                              <button type="button" className="um-action-btn" onClick={() => openView(user)}>View</button>
                               <button type="button" className="um-action-btn" onClick={() => onEditUser(user)}>Edit</button>
                               {user._id === currentUserId ? (
                                 <span className="um-you" title="You can't delete the login you are using">(you)</span>
@@ -585,6 +630,61 @@ function UserManagement({ userForm, userLoading, onFormChange, onSubmit, users, 
         </div>
 
       </div>
+
+      {viewing && (
+        <div className="um-overlay" onClick={() => setViewing(null)}>
+          <div className="um-view" onClick={(e) => e.stopPropagation()} role="dialog" aria-label={`Login ${viewing.username}`}>
+            <div className="um-list-topbar" />
+            <div className="um-view-body">
+              <div className="um-view-head">
+                <div className="um-avatar">
+                  {(viewing.name || "?").split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()}
+                </div>
+                <div>
+                  <h4 className="um-list-title">{viewing.name}</h4>
+                  <span className="um-username-text">{viewing.username}{viewing._id === currentUserId ? " · you" : ""}</span>
+                </div>
+              </div>
+
+              <div className="um-view-rows">
+                <span className="um-view-key">Role</span>
+                <span className="um-view-val">
+                  <strong>{viewing.role === "DataEntry" ? "Data Entry" : viewing.role}</strong> — {ROLE_ACCESS[viewing.role] || ""}
+                </span>
+                <span className="um-view-key">Status</span>
+                <span className="um-view-val">
+                  <span className={`um-badge ${viewing.status === "Active" ? "um-badge-active" : "um-badge-inactive"}`}>
+                    <span className="um-badge-dot" />{viewing.status}
+                  </span>
+                  {viewing.status !== "Active" && " can't log in"}
+                </span>
+                <span className="um-view-key">Password</span>
+                <span className="um-view-val">Hidden (stored locked). Use Edit to set a new one.</span>
+                <span className="um-view-key">Created</span>
+                <span className="um-view-val">{formatDateTime(viewing.createdAt)}</span>
+                <span className="um-view-key">Last changed</span>
+                <span className="um-view-val">{formatDateTime(viewing.updatedAt)}</span>
+              </div>
+
+              <div className="um-view-stats">
+                <div className="um-view-stat">
+                  <div className="um-view-stat-num">{viewing.loading ? "…" : viewing.failed ? "-" : viewing.registeredCount}</div>
+                  <div className="um-view-stat-label">Members registered</div>
+                </div>
+                <div className="um-view-stat">
+                  <div className="um-view-stat-num">{viewing.loading ? "…" : viewing.failed ? "-" : viewing.scannedCount}</div>
+                  <div className="um-view-stat-label">Entries scanned</div>
+                </div>
+              </div>
+
+              <div className="um-view-foot">
+                <button type="button" className="um-action-btn" onClick={() => { setViewing(null); onEditUser(viewing); }}>Edit</button>
+                <button type="button" className="um-cancel-btn" onClick={() => setViewing(null)}>Close</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
