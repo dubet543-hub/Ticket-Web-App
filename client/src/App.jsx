@@ -131,6 +131,8 @@ function App() {
   const [editingAttendeeId, setEditingAttendeeId] = useState(null);
   // Report the edit was opened from ({ menu, scrollTop }); Update / Cancel goes back to it
   const [editReturn, setEditReturn] = useState(null);
+  // Entry tab the Member Report opens on ("pending" from the dashboard's Pending Entry card)
+  const [memberEntryPreset, setMemberEntryPreset] = useState("");
   const mainRef = useRef(null);
   const [whatsappAutoSend,  setWhatsappAutoSend]  = useState(false);
   // Ticket number shown on the Register Member form: the next one, or the member being edited
@@ -312,7 +314,14 @@ function App() {
   // Leaving the form another way (menu click) forgets the way back
   useEffect(() => {
     if (activeMenu !== "attendees") setEditReturn(null);
+    if (activeMenu !== "member-report" && activeMenu !== "attendees") setMemberEntryPreset("");
   }, [activeMenu]);
+
+  const showPendingMembers = () => {
+    setMemberEntryPreset("pending");
+    setActiveMenu("member-report");
+    mainRef.current?.scrollTo({ top: 0 });
+  };
 
   // After Update / Cancel: back to the report the edit came from, at the same place (search kept)
   const finishEdit = () => {
@@ -879,6 +888,7 @@ function App() {
                   <Dashboard
                     dashboardStats={dashboardStats}
                     onPrintReport={handlePrintReport}
+                    onShowPending={allowedMenus.includes("member-report") ? showPendingMembers : undefined}
                   />
                 )}
 
@@ -960,6 +970,7 @@ function App() {
                   <div style={activeMenu === "member-report" ? undefined : { display: "none" }}>
                   <ReportView
                     type="member"
+                    initialEntryFilter={memberEntryPreset}
                     attendees={attendees}
                     facilities={facilities}
                     users={users}

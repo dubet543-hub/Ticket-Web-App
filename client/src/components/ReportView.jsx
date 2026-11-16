@@ -26,6 +26,14 @@ const WHATSAPP_FILTERS = [
 ];
 const whatsappFilterOf = (item) => (ticketWasSent(item) ? item.whatsappStatus : "not-sent");
 
+// Member Report tabs by entry at the gate
+const ENTRY_FILTERS = [
+  { id: "", label: "All" },
+  { id: "pending", label: "Pending entry", color: "#d97706" },
+  { id: "checked-in", label: "Checked in", color: "#059669" },
+];
+const entryFilterOf = (item) => (item.isCheckedIn ? "checked-in" : "pending");
+
 function ReportView({
   type,
   attendees = [],
@@ -37,6 +45,7 @@ function ReportView({
   onEditAttendee,
   onDeleteAttendee,
   onRenumberMembers,
+  initialEntryFilter = "",
 }) {
   const [searchFacility, setSearchFacility] = useState("");
   const [salesPerson, setSalesPerson] = useState("");
@@ -46,6 +55,7 @@ function ReportView({
   // Name / mobile number search filters as you type (no Submit needed)
   const [searchText, setSearchText] = useState("");
   const [whatsappFilter, setWhatsappFilter] = useState("");
+  const [entryFilter, setEntryFilter] = useState(initialEntryFilter);
   const [appliedFilters, setAppliedFilters] = useState({
     searchFacility: "",
     salesPerson: "",
@@ -93,14 +103,21 @@ function ReportView({
     });
   }, [attendees, type, appliedFilters, searchText]);
 
-  const whatsappCounts = useMemo(() => {
-    const counts = { "": matchingAttendees.length };
-    for (const item of matchingAttendees) counts[whatsappFilterOf(item)] = (counts[whatsappFilterOf(item)] || 0) + 1;
+  // Counts per tab: entry tabs count the search/date matches, WhatsApp tabs count the chosen entry tab
+  const countBy = (items, filterOf) => {
+    const counts = { "": items.length };
+    for (const item of items) counts[filterOf(item)] = (counts[filterOf(item)] || 0) + 1;
     return counts;
-  }, [matchingAttendees]);
+  };
+  const entryCounts = useMemo(() => countBy(matchingAttendees, entryFilterOf), [matchingAttendees]);
+  const entryAttendees = useMemo(
+    () => (type === "member" && entryFilter ? matchingAttendees.filter((item) => entryFilterOf(item) === entryFilter) : matchingAttendees),
+    [matchingAttendees, type, entryFilter]
+  );
+  const whatsappCounts = useMemo(() => countBy(entryAttendees, whatsappFilterOf), [entryAttendees]);
   const filteredAttendees = useMemo(
-    () => (type === "member" && whatsappFilter ? matchingAttendees.filter((item) => whatsappFilterOf(item) === whatsappFilter) : matchingAttendees),
-    [matchingAttendees, type, whatsappFilter]
+    () => (type === "member" && whatsappFilter ? entryAttendees.filter((item) => whatsappFilterOf(item) === whatsappFilter) : entryAttendees),
+    [entryAttendees, type, whatsappFilter]
   );
 
   // Logins that have scanned someone in (deleted logins too, as they appear in the report)
@@ -126,6 +143,7 @@ function ReportView({
   const resetFilters = () => {
     setSearchText("");
     setWhatsappFilter("");
+    setEntryFilter("");
     setSearchFacility("");
     setSalesPerson("");
     setScanner("");
@@ -299,6 +317,23 @@ function ReportView({
             </p>
           )}
         </div>
+
+        {type === "member" && (
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "6px", marginBottom: "8px" }}>
+            <span style={{ fontSize: "13px", fontWeight: 600, color: "#475569", marginRight: "4px" }}>Entry:</span>
+            {ENTRY_FILTERS.map(({ id, label, color }) => (
+              <button
+                key={id || "all"}
+                type="button"
+                className={`pill ${entryFilter === id ? "active" : "inactive"}`}
+                style={entryFilter === id && color ? { background: color } : color ? { color } : undefined}
+                onClick={() => setEntryFilter(id)}
+              >
+                {label} ({entryCounts[id] || 0})
+              </button>
+            ))}
+          </div>
+        )}
 
         {type === "member" && (
           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "6px", marginBottom: "12px" }}>

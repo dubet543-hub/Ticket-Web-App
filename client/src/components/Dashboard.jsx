@@ -60,9 +60,18 @@ function AccentBar({ color }) {
 }
 
 // ─── Metric Card ──────────────────────────────────────────────────────────────
-function MetricCard({ label, value, prefix = "", suffix = "", badge, badgeColor, accentColor, size = "md" }) {
+// With onClick the card opens a list (e.g. Pending Entry -> members not checked in yet)
+function MetricCard({ label, value, prefix = "", suffix = "", badge, badgeColor, accentColor, size = "md", onClick, linkLabel }) {
   return (
-    <div className="metric-card" style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+    <div
+      className="metric-card"
+      style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", cursor: onClick ? "pointer" : undefined }}
+      onClick={onClick}
+      onKeyDown={onClick ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } } : undefined}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      title={onClick ? linkLabel : undefined}
+    >
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px" }}>
         <p style={{
           fontSize: "10.5px", fontWeight: 700, letterSpacing: "0.12em",
@@ -82,6 +91,9 @@ function MetricCard({ label, value, prefix = "", suffix = "", badge, badgeColor,
       }}>
         {prefix}<AnimatedNumber value={value} />{suffix}
       </h3>
+      {onClick && (
+        <p style={{ marginTop: "8px", fontSize: "12px", fontWeight: 700, color: "#1a8f84" }}>{linkLabel} →</p>
+      )}
       <AccentBar color={accentColor} />
     </div>
   );
@@ -102,7 +114,7 @@ function SectionLabel({ children }) {
 }
 
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
-export default function Dashboard({ dashboardStats = {}, onPrintReport }) {
+export default function Dashboard({ dashboardStats = {}, onPrintReport, onShowPending }) {
   const {
     totalAttendees = 0,
     checkedInCount = 0,
@@ -341,7 +353,8 @@ export default function Dashboard({ dashboardStats = {}, onPrintReport }) {
             <div className="grid-5">
               <MetricCard label="Total Attendees"  value={totalAttendees}       badge="AT" badgeColor="teal"    accentColor="teal" />
               <MetricCard label="Checked In"        value={checkedInCount}        badge="IN" badgeColor="emerald" accentColor="emerald" />
-              <MetricCard label="Pending Entry"     value={pendingCount}          badge="PD" badgeColor="amber"   accentColor="amber" />
+              <MetricCard label="Pending Entry"     value={pendingCount}          badge="PD" badgeColor="amber"   accentColor="amber"
+                onClick={onShowPending} linkLabel="View list" />
               <MetricCard label="Ticket Amount"     value={totalTicketAmount}  prefix="₹" badge="TK" badgeColor="slate"   accentColor="teal" />
               <MetricCard label="Cover Amount"      value={totalCoverAmount}   prefix="₹" badge="CV" badgeColor="slate"   accentColor="slate" />
             </div>
