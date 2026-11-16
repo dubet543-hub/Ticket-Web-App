@@ -34,6 +34,15 @@ const ENTRY_FILTERS = [
 ];
 const entryFilterOf = (item) => (item.isCheckedIn ? "checked-in" : "pending");
 
+// Member Report tabs by price: "With price" = ticket or cover price above 0
+const PRICE_FILTERS = [
+  { id: "", label: "All" },
+  { id: "paid", label: "With ticket / cover price", color: "#7c3aed" },
+  { id: "free", label: "Free (0 / 0)" },
+];
+const priceFilterOf = (item) => ((Number(item.amount) || 0) > 0 || (Number(item.coverAmount) || 0) > 0 ? "paid" : "free");
+const rupees = (value) => `₹${(Number(value) || 0).toLocaleString("en-IN")}`;
+
 function ReportView({
   type,
   attendees = [],
@@ -56,6 +65,7 @@ function ReportView({
   const [searchText, setSearchText] = useState("");
   const [whatsappFilter, setWhatsappFilter] = useState("");
   const [entryFilter, setEntryFilter] = useState(initialEntryFilter);
+  const [priceFilter, setPriceFilter] = useState("");
   const [appliedFilters, setAppliedFilters] = useState({
     searchFacility: "",
     salesPerson: "",
@@ -114,10 +124,22 @@ function ReportView({
     () => (type === "member" && entryFilter ? matchingAttendees.filter((item) => entryFilterOf(item) === entryFilter) : matchingAttendees),
     [matchingAttendees, type, entryFilter]
   );
-  const whatsappCounts = useMemo(() => countBy(entryAttendees, whatsappFilterOf), [entryAttendees]);
+  const priceCounts = useMemo(() => countBy(entryAttendees, priceFilterOf), [entryAttendees]);
+  const priceAttendees = useMemo(
+    () => (type === "member" && priceFilter ? entryAttendees.filter((item) => priceFilterOf(item) === priceFilter) : entryAttendees),
+    [entryAttendees, type, priceFilter]
+  );
+  const whatsappCounts = useMemo(() => countBy(priceAttendees, whatsappFilterOf), [priceAttendees]);
   const filteredAttendees = useMemo(
-    () => (type === "member" && whatsappFilter ? entryAttendees.filter((item) => whatsappFilterOf(item) === whatsappFilter) : entryAttendees),
-    [entryAttendees, type, whatsappFilter]
+    () => (type === "member" && whatsappFilter ? priceAttendees.filter((item) => whatsappFilterOf(item) === whatsappFilter) : priceAttendees),
+    [priceAttendees, type, whatsappFilter]
+  );
+  const shownTotals = useMemo(
+    () => filteredAttendees.reduce(
+      (sum, item) => ({ amount: sum.amount + (Number(item.amount) || 0), coverAmount: sum.coverAmount + (Number(item.coverAmount) || 0) }),
+      { amount: 0, coverAmount: 0 }
+    ),
+    [filteredAttendees]
   );
 
   // Logins that have scanned someone in (deleted logins too, as they appear in the report)
@@ -144,6 +166,7 @@ function ReportView({
     setSearchText("");
     setWhatsappFilter("");
     setEntryFilter("");
+    setPriceFilter("");
     setSearchFacility("");
     setSalesPerson("");
     setScanner("");
@@ -336,6 +359,23 @@ function ReportView({
         )}
 
         {type === "member" && (
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "6px", marginBottom: "8px" }}>
+            <span style={{ fontSize: "13px", fontWeight: 600, color: "#475569", marginRight: "4px" }}>Price:</span>
+            {PRICE_FILTERS.map(({ id, label, color }) => (
+              <button
+                key={id || "all"}
+                type="button"
+                className={`pill ${priceFilter === id ? "active" : "inactive"}`}
+                style={priceFilter === id && color ? { background: color } : color ? { color } : undefined}
+                onClick={() => setPriceFilter(id)}
+              >
+                {label} ({priceCounts[id] || 0})
+              </button>
+            ))}
+          </div>
+        )}
+
+        {type === "member" && (
           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "6px", marginBottom: "12px" }}>
             <span style={{ fontSize: "13px", fontWeight: 600, color: "#475569", marginRight: "4px" }}>WhatsApp:</span>
             {WHATSAPP_FILTERS.map(({ id, label, color }) => (
@@ -350,6 +390,12 @@ function ReportView({
               </button>
             ))}
           </div>
+        )}
+
+        {type === "member" && (
+          <p style={{ fontSize: "13.5px", color: "#334155", marginBottom: "12px" }}>
+            Showing <strong>{filteredAttendees.length}</strong> members · Ticket price <strong>{rupees(shownTotals.amount)}</strong> · Cover price <strong>{rupees(shownTotals.coverAmount)}</strong>
+          </p>
         )}
 
         {type === "facility" && (
@@ -629,6 +675,8 @@ function ReportView({
                   <th>User ID</th>
                   <th>Name</th>
                   <th>Category</th>
+                  <th>Ticket Price</th>
+                  <th>Cover Price</th>
                   <th>Mobile</th>
                   <th>Date</th>
                   <th>Last Updated</th>
@@ -641,7 +689,7 @@ function ReportView({
               <tbody>
                 {filteredAttendees.length === 0 ? (
                   <tr>
-                    <td colSpan={10 + (hasMemberActions ? 1 : 0) + (canBulkSend ? 1 : 0)} className="py-6 text-center text-slate-500">No report data found.</td>
+                    <td colSpan={12 + (hasMemberActions ? 1 : 0) + (canBulkSend ? 1 : 0)} className="py-6 text-center text-slate-500">No report data found.</td>
                   </tr>
                 ) : (
                   filteredAttendees.map((item, index) => (
@@ -660,6 +708,8 @@ function ReportView({
                       <td>{item.registrationNo || "-"}</td>
                       <td>{item.name?.toUpperCase() || "-"}</td>
                       <td>{item.category?.categoryName || "-"}</td>
+                      <td>{rupees(item.amount)}</td>
+                      <td>{rupees(item.coverAmount)}</td>
                       <td>{item.mobile || "-"}</td>
                       <td>{formatDate(item.createdAt)}</td>
                       <td>{formatDateTime(item.updatedAt)}</td>
